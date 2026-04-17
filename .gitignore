@@ -1,0 +1,11 @@
+.DS_Store
+build/
+DerivedData/
+*.xcworkspace
+xcuserdata/
+*.xcuserstate
+
+# Environment variables
+.env
+.env.local
+.env.production
