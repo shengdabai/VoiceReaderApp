@@ -4,20 +4,20 @@ Read PDF/EPUB/Markdown/web articles aloud in your own AI-cloned voice — trilin
 
 ## Business Context
 
-- **Category:** content automation product
-- **Audience:** creators and small teams that want to turn ideas into repeatable publishing or video-production workflows.
+- **Category:** security and governance tool
+- **Audience:** builders and operators who need safer repositories, cleaner handoffs, and repeatable security checks.
 - **Repository status:** Public repository. Keep examples, docs, and issues free of credentials, private data, and machine-specific paths.
 - **Topics:** ai, avfoundation, ios, swift, swiftui, text-to-speech, tts, voice-cloning
 
 ## What This Project Is For
 
 - Read PDF/EPUB/Markdown/web articles aloud in your own AI-cloned voice — trilingual (中/EN/DE) iOS reader, offline fallback.
-- Move content production from ad hoc drafting to a repeatable pipeline.
-- Preserve human review points while automating the mechanical steps.
+- Find repository risks early without exposing secrets in reports.
+- Make security review repeatable across public and private codebases.
 
 ## Where It Fits
 
-This repository is meant to turn content work into an inspectable pipeline: source material in, structured drafts or production artifacts out, with review points kept explicit.
+This repository belongs in the trust-and-safety layer of the workbench: it helps make code, configuration, and public handoffs safer before they are reused or shown to clients.
 
 ## Technical Overview
 
@@ -29,13 +29,13 @@ This repository is meant to turn content work into an inspectable pipeline: sour
 
 ## Repository Map
 
+- `scripts`
 - `App`
 - `Docs`
 - `LICENSE`
 - `README.md`
 - `SECURITY.md`
 - `project.yml`
-- `scripts`
 
 ## Quick Start
 
@@ -46,12 +46,12 @@ No universal setup command is declared yet. Start by inspecting the repository m
 - Keep real credentials out of the repository. Use local environment files, GitHub repository secrets, or the deployment platform secret manager.
 - If a `.env.example` file exists, treat it as documentation only; never commit filled-in `.env` files.
 - Before publishing screenshots, demos, or client examples, remove private names, internal paths, account IDs, and API endpoints.
-- The `Repository Hygiene` workflow is intended as a lightweight guardrail, not a replacement for product-specific tests.
+- The `Repository Hygiene` workflow is a lightweight guardrail, not a replacement for product-specific tests.
 
 ## Delivery Checklist
 
 - [ ] README describes the user, business outcome, and operating boundary.
-- [ ] Setup or preview commands are current.
+- [ ] Setup or preview commands are current and do not rely on private machine state.
 - [ ] No real secrets, private user data, or machine-local state are tracked.
 - [ ] Screenshots, demos, or sample outputs are safe to share publicly when the repository is public.
 - [ ] Product-specific tests or smoke checks are documented before production use.
