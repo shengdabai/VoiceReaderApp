@@ -1,26 +1,32 @@
 .DS_Store
 build/
 DerivedData/
+*.xcodeproj/
 *.xcworkspace
 xcuserdata/
 *.xcuserstate
 
-# Environment variables
+# Environment variables & secrets
 .env
 .env.local
 .env.production
-# Codex governance: local secrets and machine state
-.env
 .env.*
 !.env.example
 !.env.*.example
 *.pem
+*.key
 *.p12
 *.pfx
+*.mobileprovision
 id_rsa
 id_dsa
 .npmrc
-.DS_Store
+
+# Internal / state / planning artifacts
 .omc/
 .codex/
 .claude/local/
+*-todo.md
+state*.json
+*.log
+.pipeline-state.json

@@ -4,7 +4,12 @@ struct SettingsView: View {
     @EnvironmentObject private var environment: AppEnvironment
 
     @AppStorage("remote_clone_endpoint") private var remoteEndpoint = ""
-    @AppStorage("remote_clone_api_key") private var remoteAPIKey = ""
+
+    // API key is kept in the Keychain, not UserDefaults, so it is never
+    // written in plaintext to the sandbox plist.
+    private let keychain = KeychainStore()
+    private let apiKeyKey = "remote_clone_api_key"
+    @State private var remoteAPIKey = ""
 
     @State private var voiceName = "我的声音"
     @State private var remoteVoiceID = ""
@@ -13,14 +18,27 @@ struct SettingsView: View {
     @State private var currentSampleURL: URL?
     @State private var recordError: String?
 
+    private var endpointIsHTTPS: Bool {
+        URL(string: remoteEndpoint)?.scheme?.lowercased() == "https"
+    }
+
     var body: some View {
         Form {
             Section("远程克隆") {
                 TextField("API Endpoint", text: $remoteEndpoint)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .keyboardType(.URL)
+                if !remoteEndpoint.isEmpty && !endpointIsHTTPS {
+                    Text("⚠️ Endpoint 需为 HTTPS。非 HTTPS 地址会被 iOS 安全策略（ATS）拒绝，导致请求静默失败并回退本地语音。")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                }
                 SecureField("API Key", text: $remoteAPIKey)
-                Text("远程克隆失败会自动回退本地离线语音。")
+                    .onChange(of: remoteAPIKey) { _, newValue in
+                        keychain.set(newValue, for: apiKeyKey)
+                    }
+                Text("远程克隆失败会自动回退本地离线语音。API Key 安全存储于钥匙串。")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -107,6 +125,21 @@ struct SettingsView: View {
             Button("确定", role: .cancel) {}
         } message: {
             Text(recordError ?? "未知错误")
+        }
+        .onAppear(perform: loadAPIKey)
+    }
+
+    /// Loads the API key from the Keychain, migrating any legacy plaintext
+    /// value left in UserDefaults by an older build.
+    private func loadAPIKey() {
+        if let stored = keychain.string(for: apiKeyKey), !stored.isEmpty {
+            remoteAPIKey = stored
+            return
+        }
+        if let legacy = UserDefaults.standard.string(forKey: apiKeyKey), !legacy.isEmpty {
+            keychain.set(legacy, for: apiKeyKey)
+            UserDefaults.standard.removeObject(forKey: apiKeyKey)
+            remoteAPIKey = legacy
         }
     }
 }

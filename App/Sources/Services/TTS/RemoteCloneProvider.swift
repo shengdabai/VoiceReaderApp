@@ -3,13 +3,31 @@ import Foundation
 struct RemoteCloneProvider: SpeechProvider {
     private let session: URLSession
     private let userDefaults: UserDefaults
+    private let keychain: KeychainStore
 
     private let endpointKey = "remote_clone_endpoint"
     private let apiKeyKey = "remote_clone_api_key"
 
-    init(session: URLSession = .shared, userDefaults: UserDefaults = .standard) {
+    init(session: URLSession = .shared,
+         userDefaults: UserDefaults = .standard,
+         keychain: KeychainStore = KeychainStore()) {
         self.session = session
         self.userDefaults = userDefaults
+        self.keychain = keychain
+    }
+
+    /// Reads the API key from the Keychain, migrating any legacy plaintext
+    /// value previously stored in UserDefaults on first use.
+    private func resolveAPIKey() -> String? {
+        if let stored = keychain.string(for: apiKeyKey), !stored.isEmpty {
+            return stored
+        }
+        if let legacy = userDefaults.string(forKey: apiKeyKey), !legacy.isEmpty {
+            keychain.set(legacy, for: apiKeyKey)
+            userDefaults.removeObject(forKey: apiKeyKey)
+            return legacy
+        }
+        return nil
     }
 
     func synthesize(_ request: SpeechRequest) async throws -> SpeechOutput {
@@ -35,7 +53,7 @@ struct RemoteCloneProvider: SpeechProvider {
         urlRequest.timeoutInterval = 30
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        if let apiKey = userDefaults.string(forKey: apiKeyKey), !apiKey.isEmpty {
+        if let apiKey = resolveAPIKey() {
             urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         }
 

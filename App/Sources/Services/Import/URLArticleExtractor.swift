@@ -46,8 +46,16 @@ final class URLArticleExtractor {
             "<[^>]+>"
         ]
 
+        // .dotMatchesLineSeparators ensures multi-line <script>/<style> blocks
+        // are stripped instead of leaking code into the read text. This option
+        // is only available on NSRegularExpression, not String.CompareOptions.
         for pattern in patterns {
-            text = text.replacingOccurrences(of: pattern, with: " ", options: [.regularExpression, .caseInsensitive])
+            guard let regex = try? NSRegularExpression(
+                pattern: pattern,
+                options: [.caseInsensitive, .dotMatchesLineSeparators]
+            ) else { continue }
+            let range = NSRange(text.startIndex..<text.endIndex, in: text)
+            text = regex.stringByReplacingMatches(in: text, range: range, withTemplate: " ")
         }
 
         text = text

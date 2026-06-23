@@ -3,7 +3,7 @@ import Combine
 import MediaPlayer
 import Foundation
 
-enum PlaybackState {
+enum PlaybackState: Equatable {
     case idle
     case playing
     case paused
@@ -16,6 +16,7 @@ final class PlaybackEngine: NSObject, ObservableObject {
 
     private let speechSynthesizer = AVSpeechSynthesizer()
     private var audioPlayer: AVAudioPlayer?
+    private var remoteAudioFileURL: URL?
     private let ttsRouter: TTSRouter
 
     override init() {
@@ -29,15 +30,19 @@ final class PlaybackEngine: NSObject, ObservableObject {
         await configureAudioSession()
         let output = await ttsRouter.synthesize(request)
 
+        // Stop any in-flight audio (local synth or remote player) before
+        // starting a new one, so the two output paths never overlap.
+        stop()
+
         switch output {
         case .localUtterance(let utterance):
-            speechSynthesizer.stopSpeaking(at: .immediate)
             speechSynthesizer.speak(utterance)
             state = .playing
 
         case .remoteAudioFile(let fileURL):
             do {
                 audioPlayer = try AVAudioPlayer(contentsOf: fileURL)
+                remoteAudioFileURL = fileURL
                 audioPlayer?.delegate = self
                 audioPlayer?.enableRate = true
                 audioPlayer?.rate = request.speed.value
@@ -45,6 +50,7 @@ final class PlaybackEngine: NSObject, ObservableObject {
                 audioPlayer?.play()
                 state = .playing
             } catch {
+                cleanupRemoteAudioFile()
                 state = .failed("音频播放失败：\(error.localizedDescription)")
             }
         }
@@ -61,19 +67,31 @@ final class PlaybackEngine: NSObject, ObservableObject {
     }
 
     func resume() {
+        // Resume only the path that is actually paused. The two output paths
+        // are mutually exclusive (play() stops the other first), so prefer the
+        // paused local synth and otherwise fall back to the remote player.
         if speechSynthesizer.isPaused {
             speechSynthesizer.continueSpeaking()
-        }
-        if let audioPlayer, !audioPlayer.isPlaying {
+            state = .playing
+        } else if let audioPlayer, !audioPlayer.isPlaying {
             audioPlayer.play()
+            state = .playing
         }
-        state = .playing
     }
 
     func stop() {
         speechSynthesizer.stopSpeaking(at: .immediate)
         audioPlayer?.stop()
+        cleanupRemoteAudioFile()
         state = .idle
+    }
+
+    /// Deletes the temporary mp3 written by the remote TTS provider so the
+    /// sandbox temp directory does not accumulate audio files over time.
+    private func cleanupRemoteAudioFile() {
+        guard let url = remoteAudioFileURL else { return }
+        try? FileManager.default.removeItem(at: url)
+        remoteAudioFileURL = nil
     }
 
     private func configureAudioSession() async {
@@ -120,6 +138,7 @@ extension PlaybackEngine: AVSpeechSynthesizerDelegate {
 extension PlaybackEngine: AVAudioPlayerDelegate {
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in
+            cleanupRemoteAudioFile()
             state = .idle
         }
     }
