@@ -25,7 +25,18 @@ enum RemoteCloneConfigurationError: LocalizedError {
 /// Volatile, opt-in configuration for the current app launch only.
 /// Reading content and credentials are intentionally never written to UserDefaults.
 actor RemoteCloneSession {
+    private static let legacyPersistedKeys = [
+        "remote_clone_endpoint",
+        "remote_clone_api_key",
+    ]
+
     private var configuration: RemoteCloneConfiguration = .disabled
+
+    init(userDefaults: UserDefaults = .standard) {
+        for key in Self.legacyPersistedKeys {
+            userDefaults.removeObject(forKey: key)
+        }
+    }
 
     func current() -> RemoteCloneConfiguration {
         configuration

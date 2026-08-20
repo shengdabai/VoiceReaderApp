@@ -120,6 +120,7 @@ Remote cloning is disabled by default. The app starts in local demo mode and
 does not send reading content to a remote service. Enabling remote cloning is
 an explicit, per-launch action; the endpoint and API key are kept in memory and
 cleared when the app exits. Only HTTPS endpoints are accepted.
+Legacy endpoint and API Key values saved by earlier builds are deleted when the app starts.
 
 ### API Request Format
 ```json
@@ -271,6 +272,7 @@ VoiceReaderApp/
 远程克隆默认关闭。应用启动时处于本地演示模式，不会把阅读正文发送到远程服务。
 远程能力必须每次启动后显式启用；端点和 API Key 仅保存在内存中，退出应用即清除，
 并且只接受 HTTPS 端点。
+旧版本曾保存的端点和 API Key 会在应用启动时删除。
 
 ### 请求体格式
 ```json

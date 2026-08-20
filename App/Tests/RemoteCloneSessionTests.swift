@@ -2,6 +2,21 @@ import XCTest
 @testable import VoiceReaderApp
 
 final class RemoteCloneSessionTests: XCTestCase {
+    func testLegacyPersistedEndpointAndKeyAreRemovedOnStartup() {
+        let suiteName = "RemoteCloneSessionTests.\(UUID().uuidString)"
+        guard let defaults = UserDefaults(suiteName: suiteName) else {
+            return XCTFail("Could not create isolated UserDefaults suite")
+        }
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        defaults.set("https://legacy.example/tts", forKey: "remote_clone_endpoint")
+        defaults.set("legacy-test-key", forKey: "remote_clone_api_key")
+
+        _ = RemoteCloneSession(userDefaults: defaults)
+
+        XCTAssertNil(defaults.object(forKey: "remote_clone_endpoint"))
+        XCTAssertNil(defaults.object(forKey: "remote_clone_api_key"))
+    }
+
     func testRemoteCloneStartsDisabledWithoutPersistedContentOrKey() async {
         let session = RemoteCloneSession()
 
