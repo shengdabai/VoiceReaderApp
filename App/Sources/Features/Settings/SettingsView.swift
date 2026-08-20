@@ -3,12 +3,14 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var environment: AppEnvironment
 
-    @AppStorage("remote_clone_endpoint") private var remoteEndpoint = ""
-    @AppStorage("remote_clone_api_key") private var remoteAPIKey = ""
+    @State private var remoteEnabled = false
+    @State private var remoteEndpoint = ""
+    @State private var remoteAPIKey = ""
+    @State private var remoteConfigurationStatus = "本地演示模式：阅读内容不会发送到远程服务。"
 
     @State private var voiceName = "我的声音"
     @State private var remoteVoiceID = ""
-    @State private var providerType: VoiceProviderType = .remoteClone
+    @State private var providerType: VoiceProviderType = .local
 
     @State private var currentSampleURL: URL?
     @State private var recordError: String?
@@ -16,11 +18,46 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("远程克隆") {
+                Toggle("仅本次启动启用远程朗读", isOn: $remoteEnabled)
+                    .onChange(of: remoteEnabled) { _, enabled in
+                        guard !enabled else { return }
+                        Task {
+                            await environment.remoteCloneSession.disable()
+                            remoteAPIKey = ""
+                            providerType = .local
+                            remoteConfigurationStatus = "本地演示模式：阅读内容不会发送到远程服务。"
+                        }
+                    }
                 TextField("API Endpoint", text: $remoteEndpoint)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .disabled(!remoteEnabled)
                 SecureField("API Key", text: $remoteAPIKey)
-                Text("远程克隆失败会自动回退本地离线语音。")
+                    .disabled(!remoteEnabled)
+                Button(remoteEnabled ? "应用本次启动的远程配置" : "保持本地演示模式") {
+                    Task {
+                        if remoteEnabled {
+                            do {
+                                try await environment.remoteCloneSession.configure(
+                                    endpointText: remoteEndpoint,
+                                    apiKey: remoteAPIKey
+                                )
+                                providerType = .remoteClone
+                                remoteConfigurationStatus = "远程朗读已为本次启动启用；退出应用后配置会清除。"
+                            } catch {
+                                await environment.remoteCloneSession.disable()
+                                providerType = .local
+                                remoteConfigurationStatus = error.localizedDescription
+                            }
+                        } else {
+                            await environment.remoteCloneSession.disable()
+                            remoteAPIKey = ""
+                            providerType = .local
+                            remoteConfigurationStatus = "本地演示模式：阅读内容不会发送到远程服务。"
+                        }
+                    }
+                }
+                Text(remoteConfigurationStatus)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -99,6 +136,13 @@ struct SettingsView: View {
                         .forEach { environment.voiceProfileStore.delete($0) }
                 }
             }
+        }
+        .task {
+            let current = await environment.remoteCloneSession.current()
+            remoteEnabled = current.enabled
+            remoteEndpoint = current.endpoint?.absoluteString ?? ""
+            remoteAPIKey = current.apiKey ?? ""
+            providerType = current.enabled ? .remoteClone : .local
         }
         .alert("录制失败", isPresented: Binding(
             get: { recordError != nil },

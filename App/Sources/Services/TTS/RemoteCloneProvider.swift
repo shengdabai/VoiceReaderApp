@@ -2,14 +2,11 @@ import Foundation
 
 struct RemoteCloneProvider: SpeechProvider {
     private let session: URLSession
-    private let userDefaults: UserDefaults
+    private let remoteCloneSession: RemoteCloneSession
 
-    private let endpointKey = "remote_clone_endpoint"
-    private let apiKeyKey = "remote_clone_api_key"
-
-    init(session: URLSession = .shared, userDefaults: UserDefaults = .standard) {
+    init(session: URLSession = .shared, remoteCloneSession: RemoteCloneSession = RemoteCloneSession()) {
         self.session = session
-        self.userDefaults = userDefaults
+        self.remoteCloneSession = remoteCloneSession
     }
 
     func synthesize(_ request: SpeechRequest) async throws -> SpeechOutput {
@@ -17,9 +14,10 @@ struct RemoteCloneProvider: SpeechProvider {
             throw SpeechSynthesisError.remoteUnsupported
         }
 
-        guard let endpointText = userDefaults.string(forKey: endpointKey),
-              let endpoint = URL(string: endpointText),
-              !endpointText.isEmpty else {
+        let configuration = await remoteCloneSession.current()
+        guard configuration.enabled,
+              let endpoint = configuration.endpoint,
+              let apiKey = configuration.apiKey else {
             throw SpeechSynthesisError.remoteNotConfigured
         }
 
@@ -35,9 +33,7 @@ struct RemoteCloneProvider: SpeechProvider {
         urlRequest.timeoutInterval = 30
         urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
 
-        if let apiKey = userDefaults.string(forKey: apiKeyKey), !apiKey.isEmpty {
-            urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        }
+        urlRequest.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
 
         urlRequest.httpBody = try JSONEncoder().encode(payload)
 

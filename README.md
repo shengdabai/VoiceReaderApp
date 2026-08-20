@@ -116,6 +116,11 @@ Configure in App Settings → Remote Cloning:
 - **API Endpoint**: Your TTS/cloning service HTTP URL
 - **API Key**: Service access key
 
+Remote cloning is disabled by default. The app starts in local demo mode and
+does not send reading content to a remote service. Enabling remote cloning is
+an explicit, per-launch action; the endpoint and API key are kept in memory and
+cleared when the app exits. Only HTTPS endpoints are accepted.
+
 ### API Request Format
 ```json
 {
@@ -262,6 +267,10 @@ VoiceReaderApp/
 
 - **API 端点**：您的 TTS/克隆服务 HTTP 地址
 - **API 密钥**：服务访问密钥
+
+远程克隆默认关闭。应用启动时处于本地演示模式，不会把阅读正文发送到远程服务。
+远程能力必须每次启动后显式启用；端点和 API Key 仅保存在内存中，退出应用即清除，
+并且只接受 HTTPS 端点。
 
 ### 请求体格式
 ```json
