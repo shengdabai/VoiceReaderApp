@@ -17,7 +17,12 @@ final class LibraryViewModel: ObservableObject {
     }
 
     func reload() {
-        books = bookStore.loadBooks()
+        do {
+            books = try bookStore.loadBooks()
+            importErrorMessage = nil
+        } catch {
+            importErrorMessage = error.localizedDescription
+        }
     }
 
     func importFile(at url: URL) async {
