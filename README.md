@@ -100,7 +100,7 @@ Handles multiple document formats:
 
 2. Generate project:
    ```bash
-   cd /Users/tonysheng/Desktop/02-编程项目/VoiceReaderApp
+   # Run from the repository root
    xcodegen generate
    open VoiceReaderApp.xcodeproj
    ```
@@ -108,6 +108,18 @@ Handles multiple document formats:
 3. Build and run:
    - In Xcode, select `VoiceReaderApp` target
    - Run on physical iOS device
+
+### Offline Core Tests (macOS)
+
+```bash
+bash scripts/test-core.sh
+```
+
+This runs Foundation-only parser and import regression tests, reading-progress
+storage tests, and speed-preset tests without downloading packages. Generated
+test files and build caches stay in `.omc/`. It does not build the iOS app or run
+the complete Xcode suite: PDF/EPUB, remote-clone configuration, audio playback,
+recording, and UI checks still require separate verification.
 
 ## Remote Voice Cloning Configuration
 
@@ -253,7 +265,7 @@ VoiceReaderApp/
 
 2. 生成工程：
    ```bash
-   cd /Users/tonysheng/Desktop/02-编程项目/VoiceReaderApp
+   # 在仓库根目录执行
    xcodegen generate
    open VoiceReaderApp.xcodeproj
    ```
@@ -261,6 +273,16 @@ VoiceReaderApp/
 3. 构建运行：
    - 在 Xcode 中选择 `VoiceReaderApp` target
    - 在真机上运行
+
+### 离线核心测试（macOS）
+
+```bash
+bash scripts/test-core.sh
+```
+
+该命令不下载依赖，运行基于 Foundation 的解析与导入回归测试、阅读进度存储测试和语速测试。
+测试工程和构建缓存在 `.omc/` 中。它不构建 iOS 应用，也不替代完整 Xcode 测试：
+PDF/EPUB、远程克隆配置、音频播放、录音和界面仍需分别验证。
 
 ## 远程克隆音色配置
 

@@ -6,7 +6,19 @@ struct MarkdownTextParser: TextParser {
 
         let rendered: String
         if let attributed = try? AttributedString(markdown: raw) {
-            rendered = String(attributed.characters)
+            // Full Markdown parsing stores block boundaries as presentation intents,
+            // not newline characters. Preserve them for paragraph navigation.
+            var text = ""
+            var previousBlockID: Int?
+            for run in attributed.runs {
+                let blockID = run.presentationIntent?.components.first?.identity
+                if !text.isEmpty, blockID != previousBlockID {
+                    text.append("\n")
+                }
+                text.append(contentsOf: attributed[run.range].characters)
+                previousBlockID = blockID
+            }
+            rendered = text
         } else {
             rendered = raw
         }

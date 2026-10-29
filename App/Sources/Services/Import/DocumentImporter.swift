@@ -43,14 +43,10 @@ final class DocumentImporter {
 
     func importArticle(from remoteURL: URL) async throws -> ImportedDocument {
         let article = try await urlExtractor.extractArticle(from: remoteURL)
-        let safeTitle = article.title.replacingOccurrences(
-            of: "[^a-zA-Z0-9\\u4e00-\\u9fa5_-]",
-            with: "-",
-            options: .regularExpression
-        )
-        let normalizedTitle = safeTitle.trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        // Keep the display title in metadata. A UUID avoids filename byte limits
+        // for long titles, especially titles containing multibyte characters.
         let destination = booksRoot
-            .appendingPathComponent("\(UUID().uuidString)-\(normalizedTitle.isEmpty ? "article" : normalizedTitle)")
+            .appendingPathComponent(UUID().uuidString)
             .appendingPathExtension("txt")
 
         try article.text.write(to: destination, atomically: true, encoding: .utf8)

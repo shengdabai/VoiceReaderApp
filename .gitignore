@@ -4,6 +4,7 @@ DerivedData/
 *.xcworkspace
 xcuserdata/
 *.xcuserstate
+.omc/
 
 # Environment variables
 .env
