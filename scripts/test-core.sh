@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run the Foundation-only tests on macOS without resolving iOS dependencies.
-# This does not build the app or cover PDF/EPUB, playback, recording, or the UI.
+# Run offline core checks on macOS without resolving iOS dependencies.
+# This does not build the app or exercise real audio, PDF/EPUB, recording, or UI.
 root="$(cd "$(dirname "$0")/.." && pwd)"
 harness="$root/.omc/core-tests.nosync"  # ~200MB of build output; .nosync keeps it out of iCloud
 mkdir -p "$harness/Sources" "$harness/Tests" "$harness/module-cache" \
@@ -15,22 +15,34 @@ import sys
 root, harness = map(Path, sys.argv[1:])
 sources = [
     'Models/SpeedPreset.swift',
+    'Models/AppLanguage.swift',
+    'Models/VoiceProfile.swift',
     'Models/ReadingPosition.swift',
     'Models/ArticleImport.swift',
     'Models/BookFormat.swift',
     'Models/ImportedDocument.swift',
     'Services/Persistence/ReadingProgressStore.swift',
     'Services/Parsing/TextParser.swift',
+    'Services/Parsing/EpubReadingOrder.swift',
     'Services/Parsing/TXTTextParser.swift',
     'Services/Parsing/MarkdownTextParser.swift',
     'Services/Import/URLArticleExtractor.swift',
     'Services/Import/DocumentImporter.swift',
+    'Services/Playback/PlaybackEngine.swift',
+    'Services/TTS/TTSModels.swift',
+    'Services/TTS/TTSRouter.swift',
+    'Services/TTS/LocalSpeechSynthProvider.swift',
+    'Services/TTS/RemoteCloneProvider.swift',
+    'Services/TTS/RemoteCloneSession.swift',
 ]
 tests = [
     'SpeedPresetTests.swift',
     'ReadingProgressStoreTests.swift',
     'URLArticleExtractorTests.swift',
     'MarkdownTextParserTests.swift',
+    'PlaybackEngineTests.swift',
+    'EpubReadingOrderTests.swift',
+    'RemoteCloneSessionTests.swift',
 ]
 for names, folder, prefix in [
     (sources, 'Sources', 'App/Sources'),

@@ -7,35 +7,23 @@ struct EpubTextParser: TextParser {
             throw TextParsingError.noExtractedText
         }
 
-        var chapterTexts: [String] = []
-        let entries = archive
-            .filter { entry in
-                let path = entry.path.lowercased()
-                return path.hasSuffix(".xhtml") || path.hasSuffix(".html") || path.hasSuffix(".htm")
-            }
-            .sorted { $0.path < $1.path }
-
-        for entry in entries {
+        func read(_ path: String) throws -> Data {
+            guard let entry = archive[path] else { throw TextParsingError.noExtractedText }
             var data = Data()
             _ = try archive.extract(entry) { chunk in
                 data.append(chunk)
             }
-            if let html = String(data: data, encoding: .utf8) {
-                let plainText = stripHTML(html)
-                chapterTexts.append(plainText)
-            }
+            return data
         }
-
-        let combined = chapterTexts.joined(separator: "\n")
-        let paragraphs = normalizeParagraphs(from: combined)
-        if paragraphs.isEmpty {
-            throw TextParsingError.noExtractedText
+        let fallbackPaths = archive.map(\.path).filter {
+            let path = $0.lowercased()
+            return path.hasSuffix(".xhtml") || path.hasSuffix(".html") || path.hasSuffix(".htm")
         }
-
-        return paragraphs
+        return try EpubReadingOrder.paragraphs(
+            container: try? read("META-INF/container.xml"),
+            fallbackPaths: fallbackPaths,
+            read: read
+        )
     }
 
-    private func stripHTML(_ html: String) -> String {
-        html.replacingOccurrences(of: "<[^>]+>", with: " ", options: .regularExpression)
-    }
 }

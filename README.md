@@ -115,11 +115,16 @@ Handles multiple document formats:
 bash scripts/test-core.sh
 ```
 
-This runs Foundation-only parser and import regression tests, reading-progress
-storage tests, and speed-preset tests without downloading packages. Generated
+This runs parser and import regression tests, reading-progress storage tests,
+speed-preset tests, remote-clone session checks, EPUB reading-order checks, and mocked playback
+lifecycle tests without downloading packages. Generated
 test files and build caches stay in `.omc/`. It does not build the iOS app or run
-the complete Xcode suite: PDF/EPUB, remote-clone configuration, audio playback,
+the complete Xcode suite: PDF/ZIP-backed EPUB import, real audio playback,
 recording, and UI checks still require separate verification.
+
+Run `python3 scripts/test-project-config.py` with XcodeGen installed to check
+that project generation preserves the microphone, background audio, document
+types, and transport-security settings. This generates only temporary copies.
 
 ## Remote Voice Cloning Configuration
 
@@ -280,9 +285,12 @@ VoiceReaderApp/
 bash scripts/test-core.sh
 ```
 
-该命令不下载依赖，运行基于 Foundation 的解析与导入回归测试、阅读进度存储测试和语速测试。
+该命令不下载依赖，运行解析与导入、阅读进度、语速、远程配置会话、EPUB 阅读顺序和模拟播放生命周期测试。
 测试工程和构建缓存在 `.omc/` 中。它不构建 iOS 应用，也不替代完整 Xcode 测试：
-PDF/EPUB、远程克隆配置、音频播放、录音和界面仍需分别验证。
+PDF/EPUB 完整导入、真实音频播放、录音和界面仍需分别验证。
+
+安装 XcodeGen 后，运行 `python3 scripts/test-project-config.py` 检查生成工程后
+麦克风、后台音频、文档类型和传输安全配置是否保留。该检查只生成临时副本。
 
 ## 远程克隆音色配置
 

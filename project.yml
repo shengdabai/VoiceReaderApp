@@ -17,11 +17,33 @@ targets:
       - App/Resources
     info:
       path: App/Resources/Info.plist
+      properties:
+        CFBundleDisplayName: VoiceReader
+        CFBundleName: VoiceReader
+        LSRequiresIPhoneOS: true
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIBackgroundModes:
+          - audio
+        NSMicrophoneUsageDescription: 用于录制你的声音样本，生成个性化朗读音色。
+        NSAppTransportSecurity:
+          NSAllowsArbitraryLoads: false
+        LSSupportsOpeningDocumentsInPlace: true
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Readable Documents
+            LSHandlerRank: Owner
+            LSItemContentTypes:
+              - com.adobe.pdf
+              - org.idpf.epub-container
+              - public.plain-text
+              - net.daringfireball.markdown
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tonysheng.voicereader
         PRODUCT_NAME: VoiceReader
-        SWIFT_VERSION: 5.10
+        SWIFT_VERSION: "5"
         TARGETED_DEVICE_FAMILY: "1,2"
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
     dependencies:

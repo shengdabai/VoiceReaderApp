@@ -18,7 +18,7 @@ final class URLArticleExtractor {
 
         let html = String(decoding: data, as: UTF8.self)
         let title = parseTitle(from: html) ?? url.host ?? "网页内容"
-        let body = stripHTML(from: html)
+        let body = Self.stripHTML(from: html)
 
         guard body.count > 30 else {
             throw URLError(.cannotParseResponse)
@@ -37,13 +37,13 @@ final class URLArticleExtractor {
             return nil
         }
 
-        let title = decodeHTMLEntities(in: String(html[titleRange]))
+        let title = Self.decodeHTMLEntities(in: String(html[titleRange]))
             .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return title.isEmpty ? nil : title
     }
 
-    private func stripHTML(from html: String) -> String {
+    static func stripHTML(from html: String) -> String {
         var text = html
         // Remove complete hidden blocks before stripping tags. Dot must also
         // match newlines, otherwise script/style contents become spoken text.
@@ -75,7 +75,7 @@ final class URLArticleExtractor {
             .joined(separator: "\n")
     }
 
-    private func decodeHTMLEntities(in text: String) -> String {
+    private static func decodeHTMLEntities(in text: String) -> String {
         let named = [
             "amp": "&", "lt": "<", "gt": ">", "quot": "\"", "apos": "'", "nbsp": " ",
             "ndash": "–", "mdash": "—", "hellip": "…", "bull": "•", "middot": "·",
