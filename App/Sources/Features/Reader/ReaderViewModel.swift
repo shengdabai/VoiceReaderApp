@@ -98,7 +98,7 @@ final class ReaderViewModel: ObservableObject {
 
     private func restoreProgress() {
         let position = progressStore.loadPosition(for: book.id)
-        if position.paragraphIndex < paragraphs.count {
+        if paragraphs.indices.contains(position.paragraphIndex) {
             currentParagraphIndex = position.paragraphIndex
         }
     }

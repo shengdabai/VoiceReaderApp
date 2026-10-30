@@ -1,6 +1,8 @@
 import AVFoundation
 import Combine
+#if os(iOS)
 import MediaPlayer
+#endif
 import Foundation
 
 enum PlaybackState: Equatable {
@@ -11,99 +13,96 @@ enum PlaybackState: Equatable {
 }
 
 @MainActor
-final class PlaybackEngine: NSObject, ObservableObject {
+protocol PlaybackDriving: AnyObject {
+    var onCompletion: ((Bool) -> Void)? { get set }
+    func start(_ output: SpeechOutput) throws
+    func pause()
+    func resume() -> Bool
+    func stop()
+}
+
+@MainActor
+final class PlaybackEngine: ObservableObject {
     @Published private(set) var state: PlaybackState = .idle
+    private let driver: PlaybackDriving
+    private let synthesize: (SpeechRequest) async -> SpeechOutput
+    private let configureAudioSession: () throws -> Void
+    private let removeAudioFile: (URL) -> Void
+    private var requestID = UUID()
 
-    private let speechSynthesizer = AVSpeechSynthesizer()
-    private var audioPlayer: AVAudioPlayer?
-    private var remoteAudioFileURL: URL?
-    private let ttsRouter: TTSRouter
-
-    override init() {
-        self.ttsRouter = TTSRouter()
-        super.init()
-        speechSynthesizer.delegate = self
+    convenience init(remoteCloneSession: RemoteCloneSession) {
+        let router = TTSRouter(remoteProvider: RemoteCloneProvider(remoteCloneSession: remoteCloneSession))
+        self.init(driver: SystemPlaybackDriver(), synthesize: router.synthesize) {
+            #if os(iOS)
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .spokenAudio, options: [.allowAirPlay, .allowBluetooth])
+            try session.setActive(true)
+            #endif
+        }
+        #if os(iOS)
         configureRemoteCommands()
+        #endif
+    }
+
+    init(driver: PlaybackDriving,
+         synthesize: @escaping (SpeechRequest) async -> SpeechOutput,
+         configureAudioSession: @escaping () throws -> Void = {},
+         removeAudioFile: @escaping (URL) -> Void = { try? FileManager.default.removeItem(at: $0) }) {
+        self.driver = driver
+        self.synthesize = synthesize
+        self.configureAudioSession = configureAudioSession
+        self.removeAudioFile = removeAudioFile
     }
 
     func play(request: SpeechRequest) async {
-        await configureAudioSession()
-        let output = await ttsRouter.synthesize(request)
-
-        // Stop any in-flight audio (local synth or remote player) before
-        // starting a new one, so the two output paths never overlap.
         stop()
-
-        switch output {
-        case .localUtterance(let utterance):
-            speechSynthesizer.speak(utterance)
-            state = .playing
-
-        case .remoteAudioFile(let fileURL):
-            do {
-                audioPlayer = try AVAudioPlayer(contentsOf: fileURL)
-                remoteAudioFileURL = fileURL
-                audioPlayer?.delegate = self
-                audioPlayer?.enableRate = true
-                audioPlayer?.rate = request.speed.value
-                audioPlayer?.prepareToPlay()
-                audioPlayer?.play()
-                state = .playing
-            } catch {
-                cleanupRemoteAudioFile()
-                state = .failed("音频播放失败：\(error.localizedDescription)")
+        let id = requestID
+        do {
+            try configureAudioSession()
+            let output = await synthesize(request)
+            guard id == requestID, !Task.isCancelled else {
+                // A stale remote result is never played; delete its temp mp3.
+                if case .remoteAudioFile(let url) = output { removeAudioFile(url) }
+                return
             }
+            driver.onCompletion = { [weak self] success in
+                guard let self, self.requestID == id else { return }
+                self.state = success ? .idle : .failed("音频播放失败。")
+            }
+            try driver.start(output)
+            state = .playing
+        } catch {
+            guard id == requestID else { return }
+            driver.stop()
+            state = .failed("音频播放失败：\(error.localizedDescription)")
         }
     }
 
     func pause() {
-        if speechSynthesizer.isSpeaking {
-            speechSynthesizer.pauseSpeaking(at: .word)
-        }
-        if audioPlayer?.isPlaying == true {
-            audioPlayer?.pause()
-        }
-        state = .paused
+        // Invalidate synthesis still in flight as well as pausing active audio.
+        requestID = UUID()
+        driver.pause()
+        if state == .playing { state = .paused }
     }
 
     func resume() {
-        // Resume only the path that is actually paused. The two output paths
-        // are mutually exclusive (play() stops the other first), so prefer the
-        // paused local synth and otherwise fall back to the remote player.
-        if speechSynthesizer.isPaused {
-            speechSynthesizer.continueSpeaking()
-            state = .playing
-        } else if let audioPlayer, !audioPlayer.isPlaying {
-            audioPlayer.play()
-            state = .playing
+        guard state == .paused else { return }
+        let id = requestID
+        driver.onCompletion = { [weak self] success in
+            guard let self, self.requestID == id else { return }
+            self.state = success ? .idle : .failed("音频播放失败。")
         }
+        if driver.resume() { state = .playing }
     }
 
     func stop() {
-        speechSynthesizer.stopSpeaking(at: .immediate)
-        audioPlayer?.stop()
-        cleanupRemoteAudioFile()
+        requestID = UUID()
+        driver.onCompletion = nil
+        driver.stop()
         state = .idle
     }
 
-    /// Deletes the temporary mp3 written by the remote TTS provider so the
-    /// sandbox temp directory does not accumulate audio files over time.
-    private func cleanupRemoteAudioFile() {
-        guard let url = remoteAudioFileURL else { return }
-        try? FileManager.default.removeItem(at: url)
-        remoteAudioFileURL = nil
-    }
-
-    private func configureAudioSession() async {
-        let session = AVAudioSession.sharedInstance()
-        do {
-            try session.setCategory(.playback, mode: .spokenAudio, options: [.allowAirPlay, .allowBluetooth])
-            try session.setActive(true)
-        } catch {
-            state = .failed("音频会话配置失败：\(error.localizedDescription)")
-        }
-    }
-
+    #if os(iOS)
     private func configureRemoteCommands() {
         let center = MPRemoteCommandCenter.shared()
         center.playCommand.addTarget { [weak self] _ in
@@ -119,27 +118,89 @@ final class PlaybackEngine: NSObject, ObservableObject {
             return .success
         }
     }
+    #endif
 }
 
-extension PlaybackEngine: AVSpeechSynthesizerDelegate {
+@MainActor
+private final class SystemPlaybackDriver: NSObject, PlaybackDriving, AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate {
+    var onCompletion: ((Bool) -> Void)?
+    private lazy var speechSynthesizer: AVSpeechSynthesizer = {
+        let synthesizer = AVSpeechSynthesizer()
+        synthesizer.delegate = self
+        return synthesizer
+    }()
+    private var activeUtterance: AVSpeechUtterance?
+    private var audioPlayer: AVAudioPlayer?
+    /// Temp mp3 written by the remote TTS provider; deleted when playback
+    /// stops or finishes so the sandbox temp directory does not fill up.
+    private var remoteAudioFileURL: URL?
+
+    func start(_ output: SpeechOutput) throws {
+        stop()
+        switch output {
+        case .localUtterance(let utterance):
+            activeUtterance = utterance
+            speechSynthesizer.speak(utterance)
+        case .remoteAudioFile(let url):
+            remoteAudioFileURL = url
+            let player = try AVAudioPlayer(contentsOf: url)
+            audioPlayer = player
+            player.delegate = self
+            // The remote API already synthesizes at the requested speed.
+            guard player.prepareToPlay(), player.play() else {
+                throw CocoaError(.fileReadUnknown)
+            }
+        }
+    }
+
+    func pause() {
+        if activeUtterance != nil { speechSynthesizer.pauseSpeaking(at: .word) }
+        audioPlayer?.pause()
+    }
+
+    func resume() -> Bool {
+        if activeUtterance != nil { return speechSynthesizer.continueSpeaking() }
+        return audioPlayer?.play() ?? false
+    }
+
+    func stop() {
+        if activeUtterance != nil {
+            activeUtterance = nil
+            speechSynthesizer.stopSpeaking(at: .immediate)
+        }
+        audioPlayer?.stop()
+        audioPlayer = nil
+        cleanupRemoteAudioFile()
+    }
+
+    private func cleanupRemoteAudioFile() {
+        guard let url = remoteAudioFileURL else { return }
+        try? FileManager.default.removeItem(at: url)
+        remoteAudioFileURL = nil
+    }
+
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
         Task { @MainActor in
-            state = .idle
+            guard activeUtterance === utterance else { return }
+            activeUtterance = nil
+            onCompletion?(true)
         }
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
         Task { @MainActor in
-            state = .idle
+            guard activeUtterance === utterance else { return }
+            activeUtterance = nil
+            onCompletion?(true)
         }
     }
-}
 
-extension PlaybackEngine: AVAudioPlayerDelegate {
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in
+            guard audioPlayer === player else { return }
+            audioPlayer = nil
             cleanupRemoteAudioFile()
-            state = .idle
+            onCompletion?(flag)
         }
     }
 }

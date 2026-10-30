@@ -3,17 +3,14 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject private var environment: AppEnvironment
 
-    @AppStorage("remote_clone_endpoint") private var remoteEndpoint = ""
-
-    // API key is kept in the Keychain, not UserDefaults, so it is never
-    // written in plaintext to the sandbox plist.
-    private let keychain = KeychainStore()
-    private let apiKeyKey = "remote_clone_api_key"
+    @State private var remoteEnabled = false
+    @State private var remoteEndpoint = ""
     @State private var remoteAPIKey = ""
+    @State private var remoteConfigurationStatus = "本地演示模式：阅读内容不会发送到远程服务。"
 
     @State private var voiceName = "我的声音"
     @State private var remoteVoiceID = ""
-    @State private var providerType: VoiceProviderType = .remoteClone
+    @State private var providerType: VoiceProviderType = .local
 
     @State private var currentSampleURL: URL?
     @State private var recordError: String?
@@ -25,20 +22,52 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("远程克隆") {
+                Toggle("仅本次启动启用远程朗读", isOn: $remoteEnabled)
+                    .onChange(of: remoteEnabled) { _, enabled in
+                        guard !enabled else { return }
+                        Task {
+                            await environment.remoteCloneSession.disable()
+                            remoteAPIKey = ""
+                            providerType = .local
+                            remoteConfigurationStatus = "本地演示模式：阅读内容不会发送到远程服务。"
+                        }
+                    }
                 TextField("API Endpoint", text: $remoteEndpoint)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .keyboardType(.URL)
-                if !remoteEndpoint.isEmpty && !endpointIsHTTPS {
-                    Text("⚠️ Endpoint 需为 HTTPS。非 HTTPS 地址会被 iOS 安全策略（ATS）拒绝，导致请求静默失败并回退本地语音。")
+                    .disabled(!remoteEnabled)
+                if remoteEnabled && !remoteEndpoint.isEmpty && !endpointIsHTTPS {
+                    Text("⚠️ Endpoint 需为 HTTPS。非 HTTPS 地址无法启用远程朗读,iOS 安全策略(ATS)也会拒绝这类请求。")
                         .font(.footnote)
                         .foregroundStyle(.orange)
                 }
                 SecureField("API Key", text: $remoteAPIKey)
-                    .onChange(of: remoteAPIKey) { _, newValue in
-                        keychain.set(newValue, for: apiKeyKey)
+                    .disabled(!remoteEnabled)
+                Button(remoteEnabled ? "应用本次启动的远程配置" : "保持本地演示模式") {
+                    Task {
+                        if remoteEnabled {
+                            do {
+                                try await environment.remoteCloneSession.configure(
+                                    endpointText: remoteEndpoint,
+                                    apiKey: remoteAPIKey
+                                )
+                                providerType = .remoteClone
+                                remoteConfigurationStatus = "远程朗读已为本次启动启用；退出应用后配置会清除。"
+                            } catch {
+                                await environment.remoteCloneSession.disable()
+                                providerType = .local
+                                remoteConfigurationStatus = error.localizedDescription
+                            }
+                        } else {
+                            await environment.remoteCloneSession.disable()
+                            remoteAPIKey = ""
+                            providerType = .local
+                            remoteConfigurationStatus = "本地演示模式：阅读内容不会发送到远程服务。"
+                        }
                     }
-                Text("远程克隆失败会自动回退本地离线语音。API Key 安全存储于钥匙串。")
+                }
+                Text(remoteConfigurationStatus)
                     .font(.footnote)
                     .foregroundStyle(.secondary)
             }
@@ -118,6 +147,13 @@ struct SettingsView: View {
                 }
             }
         }
+        .task {
+            let current = await environment.remoteCloneSession.current()
+            remoteEnabled = current.enabled
+            remoteEndpoint = current.endpoint?.absoluteString ?? ""
+            remoteAPIKey = current.apiKey ?? ""
+            providerType = current.enabled ? .remoteClone : .local
+        }
         .alert("录制失败", isPresented: Binding(
             get: { recordError != nil },
             set: { _ in recordError = nil }
@@ -125,21 +161,6 @@ struct SettingsView: View {
             Button("确定", role: .cancel) {}
         } message: {
             Text(recordError ?? "未知错误")
-        }
-        .onAppear(perform: loadAPIKey)
-    }
-
-    /// Loads the API key from the Keychain, migrating any legacy plaintext
-    /// value left in UserDefaults by an older build.
-    private func loadAPIKey() {
-        if let stored = keychain.string(for: apiKeyKey), !stored.isEmpty {
-            remoteAPIKey = stored
-            return
-        }
-        if let legacy = UserDefaults.standard.string(forKey: apiKeyKey), !legacy.isEmpty {
-            keychain.set(legacy, for: apiKeyKey)
-            UserDefaults.standard.removeObject(forKey: apiKeyKey)
-            remoteAPIKey = legacy
         }
     }
 }

@@ -7,7 +7,7 @@
 Headers:
 
 - `Content-Type: application/json`
-- `Authorization: Bearer <API_KEY>` (optional)
+- `Authorization: Bearer <API_KEY>` (required)
 
 Body:
 
@@ -28,4 +28,5 @@ Body:
 ## Notes
 
 - `speed` follows fixed preset value: 0.5 ~ 3.0
+- The service applies `speed` during synthesis; the client plays the response at its original rate.
 - `languageCode` only accepts: `zh-CN`, `en-US`, `de-DE`

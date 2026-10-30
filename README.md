@@ -39,7 +39,24 @@ This repository turns content work into a repeatable workflow: inputs, processin
 
 ## Quick Start
 
-No universal setup command is declared yet. Start by inspecting the repository map above and the project-specific scripts or docs committed with the code.
+Generate and open the Xcode project from the repository root: `xcodegen generate && open VoiceReaderApp.xcodeproj`.
+
+### Offline core tests (macOS)
+
+```bash
+bash scripts/test-core.sh
+```
+
+This runs parser and import regression tests, reading-progress storage tests,
+speed-preset tests, remote-clone session checks, EPUB reading-order checks, and mocked playback
+lifecycle tests without downloading packages. Generated
+test files and build caches stay in `.omc/core-tests.nosync/`. It does not build the iOS app or run
+the complete Xcode suite: PDF/ZIP-backed EPUB import, real audio playback,
+recording, and UI checks still require separate verification.
+
+Run `python3 scripts/test-project-config.py` with XcodeGen installed to check
+that project generation preserves the microphone, background audio, document
+types, and transport-security settings. This generates only temporary copies.
 
 ## Operating Notes
 
@@ -76,8 +93,14 @@ Maintained by [Tony Sheng](https://github.com/shengdabai). This README is writte
 
 Configure in **Settings → Remote Cloning**:
 
-- **API Endpoint** — your TTS / cloning service HTTP URL
+- **API Endpoint** — your TTS / cloning service HTTPS URL
 - **API Key** — service access key
+
+Remote cloning is disabled by default. The app starts in local demo mode and
+does not send reading content to a remote service. Enabling remote cloning is
+an explicit, per-launch action; the endpoint and API key are kept in memory and
+cleared when the app exits. Only HTTPS endpoints are accepted.
+Legacy endpoint and API Key values saved by earlier builds (UserDefaults or Keychain) are deleted when the app starts.
 
 Request body the app sends:
 
@@ -180,6 +203,19 @@ open VoiceReaderApp.xcodeproj
 
 在 Xcode 中选择 **VoiceReaderApp** target,在 iOS 真机上运行(后台音频与麦克风在真机上表现最佳)。
 
+### 离线核心测试(macOS)
+
+```bash
+bash scripts/test-core.sh
+```
+
+该命令不下载依赖,运行解析与导入、阅读进度、语速、远程配置会话、EPUB 阅读顺序和模拟播放生命周期测试。
+测试工程和构建缓存在 `.omc/core-tests.nosync/` 中。它不构建 iOS 应用,也不替代完整 Xcode 测试:
+PDF/EPUB 完整导入、真实音频播放、录音和界面仍需分别验证。
+
+安装 XcodeGen 后,运行 `python3 scripts/test-project-config.py` 检查生成工程后
+麦克风、后台音频、文档类型和传输安全配置是否保留。该检查只生成临时副本。
+
 ## 📖 使用
 
 1. 从「文件」、iCloud 或其他应用的分享面板**导入**文档(PDF / EPUB / Markdown / TXT),或粘贴网址抓取文章。
@@ -191,8 +227,13 @@ open VoiceReaderApp.xcodeproj
 
 在 **设置 → 远程克隆** 中配置:
 
-- **API 端点**——你的 TTS / 克隆服务 HTTP 地址
+- **API 端点**——你的 TTS / 克隆服务 HTTPS 地址
 - **API 密钥**——服务访问密钥
+
+远程克隆默认关闭。应用启动时处于本地演示模式,不会把阅读正文发送到远程服务。
+远程能力必须每次启动后显式启用;端点和 API Key 仅保存在内存中,退出应用即清除,
+并且只接受 HTTPS 端点。
+旧版本曾保存的端点和 API Key(UserDefaults 或钥匙串)会在应用启动时删除。
 
 应用发送的请求体:
 
