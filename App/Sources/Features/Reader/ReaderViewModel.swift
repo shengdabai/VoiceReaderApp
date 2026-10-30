@@ -8,6 +8,7 @@ final class ReaderViewModel: ObservableObject {
     @Published var selectedLanguage: AppLanguage = .zhHans
     @Published var selectedSpeed: SpeedPreset = .x1_0
     @Published var errorMessage: String?
+    @Published private(set) var playbackState: PlaybackState = .idle
 
     let book: Book
 
@@ -15,6 +16,7 @@ final class ReaderViewModel: ObservableObject {
     private let progressStore: ReadingProgressStore
     private let playbackEngine: PlaybackEngine
     private let selectedVoiceProvider: () -> VoiceProfile?
+    private var cancellables: Set<AnyCancellable> = []
 
     init(book: Book,
          parserFactory: ParserFactory,
@@ -28,6 +30,13 @@ final class ReaderViewModel: ObservableObject {
         self.selectedVoiceProvider = selectedVoiceProvider
         loadContent()
         restoreProgress()
+
+        // Mirror the playback engine's state so the reader controls can show
+        // the right buttons for idle / playing / paused.
+        playbackEngine.$state
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.playbackState, on: self)
+            .store(in: &cancellables)
     }
 
     var currentParagraph: String {
@@ -35,9 +44,8 @@ final class ReaderViewModel: ObservableObject {
         return paragraphs[currentParagraphIndex]
     }
 
-    var playbackState: PlaybackState {
-        playbackEngine.state
-    }
+    var isPlaying: Bool { playbackState == .playing }
+    var isPaused: Bool { playbackState == .paused }
 
     func playCurrentParagraph() async {
         let paragraph = currentParagraph

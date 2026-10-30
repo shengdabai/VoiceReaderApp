@@ -27,6 +27,7 @@ final class PlaybackEngine: ObservableObject {
     private let driver: PlaybackDriving
     private let synthesize: (SpeechRequest) async -> SpeechOutput
     private let configureAudioSession: () throws -> Void
+    private let removeAudioFile: (URL) -> Void
     private var requestID = UUID()
 
     convenience init(remoteCloneSession: RemoteCloneSession) {
@@ -45,10 +46,12 @@ final class PlaybackEngine: ObservableObject {
 
     init(driver: PlaybackDriving,
          synthesize: @escaping (SpeechRequest) async -> SpeechOutput,
-         configureAudioSession: @escaping () throws -> Void = {}) {
+         configureAudioSession: @escaping () throws -> Void = {},
+         removeAudioFile: @escaping (URL) -> Void = { try? FileManager.default.removeItem(at: $0) }) {
         self.driver = driver
         self.synthesize = synthesize
         self.configureAudioSession = configureAudioSession
+        self.removeAudioFile = removeAudioFile
     }
 
     func play(request: SpeechRequest) async {
@@ -57,7 +60,11 @@ final class PlaybackEngine: ObservableObject {
         do {
             try configureAudioSession()
             let output = await synthesize(request)
-            guard id == requestID, !Task.isCancelled else { return }
+            guard id == requestID, !Task.isCancelled else {
+                // A stale remote result is never played; delete its temp mp3.
+                if case .remoteAudioFile(let url) = output { removeAudioFile(url) }
+                return
+            }
             driver.onCompletion = { [weak self] success in
                 guard let self, self.requestID == id else { return }
                 self.state = success ? .idle : .failed("音频播放失败。")
@@ -124,6 +131,9 @@ private final class SystemPlaybackDriver: NSObject, PlaybackDriving, AVSpeechSyn
     }()
     private var activeUtterance: AVSpeechUtterance?
     private var audioPlayer: AVAudioPlayer?
+    /// Temp mp3 written by the remote TTS provider; deleted when playback
+    /// stops or finishes so the sandbox temp directory does not fill up.
+    private var remoteAudioFileURL: URL?
 
     func start(_ output: SpeechOutput) throws {
         stop()
@@ -132,6 +142,7 @@ private final class SystemPlaybackDriver: NSObject, PlaybackDriving, AVSpeechSyn
             activeUtterance = utterance
             speechSynthesizer.speak(utterance)
         case .remoteAudioFile(let url):
+            remoteAudioFileURL = url
             let player = try AVAudioPlayer(contentsOf: url)
             audioPlayer = player
             player.delegate = self
@@ -159,6 +170,13 @@ private final class SystemPlaybackDriver: NSObject, PlaybackDriving, AVSpeechSyn
         }
         audioPlayer?.stop()
         audioPlayer = nil
+        cleanupRemoteAudioFile()
+    }
+
+    private func cleanupRemoteAudioFile() {
+        guard let url = remoteAudioFileURL else { return }
+        try? FileManager.default.removeItem(at: url)
+        remoteAudioFileURL = nil
     }
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
@@ -181,6 +199,7 @@ private final class SystemPlaybackDriver: NSObject, PlaybackDriving, AVSpeechSyn
         Task { @MainActor in
             guard audioPlayer === player else { return }
             audioPlayer = nil
+            cleanupRemoteAudioFile()
             onCompletion?(flag)
         }
     }

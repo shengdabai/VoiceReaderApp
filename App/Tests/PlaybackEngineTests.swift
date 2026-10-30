@@ -20,6 +20,20 @@ final class PlaybackEngineTests: XCTestCase {
         XCTAssertEqual(engine.state, .idle)
     }
 
+    func testStaleRemoteResultDeletesItsTempFile() async {
+        let source = DeferredSpeech(), driver = FakePlaybackDriver()
+        var removed: [URL] = []
+        let engine = PlaybackEngine(driver: driver, synthesize: source.synthesize,
+                                    removeAudioFile: { removed.append($0) })
+        let task = Task { await engine.play(request: request()) }
+        await source.waitForRequest("first")
+        engine.stop()
+        source.finish("first", with: output)
+        await task.value
+        XCTAssertEqual(driver.starts, 0)
+        XCTAssertEqual(removed, [URL(fileURLWithPath: "/fixture-audio.mp3")])
+    }
+
     func testLatestPlayWinsWhenResultsArriveOutOfOrder() async {
         let source = DeferredSpeech(), driver = FakePlaybackDriver()
         let engine = PlaybackEngine(driver: driver, synthesize: source.synthesize)

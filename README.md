@@ -1,115 +1,47 @@
-# VoiceReaderApp (iOS)
+# VoiceReaderApp
 
-A multi-language text-to-speech app designed for personal use, supporting Chinese, English, and German. Import PDF/EPUB/Markdown/TXT files, record voice samples, with intelligent remote voice cloning fallback to offline TTS.
+Read PDF/EPUB/Markdown/web articles aloud in your own AI-cloned voice — trilingual (中/EN/DE) iOS reader, offline fallback
 
-## Features
+## Business Context
 
-### File Import
-- **Local Files**: Import from device storage or iCloud
-- **External Sharing**: Open files shared from other apps (including WeChat)
-- **Web Content**: Import URLs to extract and read article content
+- **Category:** content automation product
+- **Audience:** creators and small teams that want repeatable publishing, research, or video-production workflows.
+- **Repository status:** Public repository. Keep examples, docs, and issues free of credentials, private data, and machine-specific paths.
+- **Topics:** ai, avfoundation, ios, swift, swiftui, text-to-speech, tts, voice-cloning
 
-### Supported Formats
-- PDF documents
-- EPUB books
-- Markdown files
-- Plain text (TXT)
+## What This Project Is For
 
-### Languages
-- Chinese (Simplified)
-- English (US)
-- German (Germany)
+- Read PDF/EPUB/Markdown/web articles aloud in your own AI-cloned voice — trilingual (中/EN/DE) iOS reader, offline fallback.
+- Move content work from ad hoc drafting to an inspectable production pipeline.
+- Preserve human review while automating mechanical research, drafting, or publishing steps.
 
-### Playback Controls
-- **Speed Settings**: 0.5x, 0.75x, 1.0x, 1.25x, 1.5x, 2.0x, 2.5x, 3.0x
-- **Background Playback**: Continue reading while app is in background
-- **Resume Playback**: Automatically resume from last position
-- **Pause/Resume**: Full playback control
+## Where It Fits
 
-### Voice System
-- **Local Recording**: Record personal voice samples
-- **Remote Voice Cloning**: Priority use of remote cloned voices
-- **Offline Fallback**: Automatic fallback to local TTS when remote service unavailable
+This repository turns content work into a repeatable workflow: inputs, processing steps, review points, and outputs are visible enough to audit and improve.
 
-## Technical Stack
+## Technical Overview
 
-- **Language**: Swift 5.10
-- **UI Framework**: SwiftUI
-- **Platform**: iOS 17.0+
-- **Build Tool**: XcodeGen
-- **Dependencies**: ZIPFoundation (for file handling)
-- **Audio**: AVFoundation (speech synthesis)
+- **Primary language:** Swift
+- **Detected stack:** Swift
+- **Default branch:** `main`
+- **Visibility:** `PUBLIC`
+- **License:** MIT License
 
-## Architecture
+## Repository Map
 
-### Project Structure
-```
-VoiceReaderApp/
-├── project.yml              # XcodeGen project configuration
-├── App/
-│   ├── Sources/
-│   │   ├── App/             # App entry point
-│   │   ├── Features/        # Feature modules
-│   │   │   ├── Library/     # Book library management
-│   │   │   ├── Reader/      # Reading interface
-│   │   │   └── Settings/    # App settings
-│   │   ├── Models/          # Data models
-│   │   ├── Services/        # Business logic
-│   │   │   ├── Import/     # Document import
-│   │   │   ├── Parsing/    # Text extraction
-│   │   │   ├── TTS/        # Speech synthesis
-│   │   │   ├── Playback/   # Audio playback
-│   │   │   └── Persistence/ # Data storage
-│   │   ├── UI/             # UI components
-│   │   └── Support/        # App environment
-│   ├── Resources/           # Assets and Info.plist
-│   └── Tests/              # Unit tests
-```
+- `scripts`
+- `App`
+- `Docs`
+- `LICENSE`
+- `README.md`
+- `SECURITY.md`
+- `project.yml`
 
-### Core Components
+## Quick Start
 
-#### TTS Router
-Intelligently routes speech requests:
-1. Attempts remote voice cloning if configured
-2. Falls back to local TTS if remote unavailable
-3. Ensures continuous playback experience
+Generate and open the Xcode project from the repository root: `xcodegen generate && open VoiceReaderApp.xcodeproj`.
 
-#### Parser Factory
-Handles multiple document formats:
-- PDF: Extracts text while preserving readability
-- EPUB: Converts to plain text (simple formatting)
-- Markdown: Preserves basic structure
-- TXT: Direct text processing
-
-#### Voice Profile System
-- Record personal voice samples
-- Configure remote cloning services
-- Automatic provider selection based on availability
-
-## Installation & Development
-
-### Requirements
-- Xcode 15+ (full Xcode, not Command Line Tools)
-- XcodeGen
-
-### Setup
-1. Install XcodeGen:
-   ```bash
-   brew install xcodegen
-   ```
-
-2. Generate project:
-   ```bash
-   # Run from the repository root
-   xcodegen generate
-   open VoiceReaderApp.xcodeproj
-   ```
-
-3. Build and run:
-   - In Xcode, select `VoiceReaderApp` target
-   - Run on physical iOS device
-
-### Offline Core Tests (macOS)
+### Offline core tests (macOS)
 
 ```bash
 bash scripts/test-core.sh
@@ -118,7 +50,7 @@ bash scripts/test-core.sh
 This runs parser and import regression tests, reading-progress storage tests,
 speed-preset tests, remote-clone session checks, EPUB reading-order checks, and mocked playback
 lifecycle tests without downloading packages. Generated
-test files and build caches stay in `.omc/`. It does not build the iOS app or run
+test files and build caches stay in `.omc/core-tests.nosync/`. It does not build the iOS app or run
 the complete Xcode suite: PDF/ZIP-backed EPUB import, real audio playback,
 recording, and UI checks still require separate verification.
 
@@ -126,20 +58,52 @@ Run `python3 scripts/test-project-config.py` with XcodeGen installed to check
 that project generation preserves the microphone, background audio, document
 types, and transport-security settings. This generates only temporary copies.
 
-## Remote Voice Cloning Configuration
+## Operating Notes
 
-Configure in App Settings → Remote Cloning:
+- Keep real credentials out of the repository. Use local environment files, GitHub repository secrets, or the deployment platform secret manager.
+- If a `.env.example` file exists, treat it as documentation only; never commit filled-in `.env` files.
+- Before publishing screenshots, demos, or client examples, remove private names, internal paths, account IDs, and API endpoints.
+- The `Repository Hygiene` workflow is a lightweight guardrail, not a replacement for product-specific tests.
 
-- **API Endpoint**: Your TTS/cloning service HTTP URL
-- **API Key**: Service access key
+## Delivery Checklist
+
+- [ ] README describes the user, business outcome, and operating boundary.
+- [ ] Setup or preview commands are current and do not rely on private machine state.
+- [ ] No real secrets, private user data, or machine-local state are tracked.
+- [ ] Screenshots, demos, or sample outputs are safe to share publicly when the repository is public.
+- [ ] Product-specific tests or smoke checks are documented before production use.
+
+## Roadmap
+
+- Tighten the fastest path from clone to useful demo.
+- Add project-specific screenshots, sample outputs, or a short walkthrough where useful.
+- Promote repeated manual steps into scripts, tests, or documented workflows.
+- Keep security, privacy, and licensing boundaries explicit as the project evolves.
+
+## Maintainer Notes
+
+Maintained by [Tony Sheng](https://github.com/shengdabai). This README is written as a business-facing handoff: it should help a future collaborator, client, or reviewer understand why the repository exists, how to inspect it, and what must be true before it is reused or shipped.
+
+1. **Import** a document (PDF / EPUB / Markdown / TXT) from Files, iCloud, or another app's share sheet — or paste a web URL to pull in an article.
+2. **Pick a language and a voice profile** (on-device, or a remote clone you've configured).
+3. **Press play.** Adjust speed on the fly; lock your phone and keep listening.
+4. **Reopen later** — VoiceReaderApp resumes from your last reading position.
+
+### Remote voice cloning (optional)
+
+Configure in **Settings → Remote Cloning**:
+
+- **API Endpoint** — your TTS / cloning service HTTPS URL
+- **API Key** — service access key
 
 Remote cloning is disabled by default. The app starts in local demo mode and
 does not send reading content to a remote service. Enabling remote cloning is
 an explicit, per-launch action; the endpoint and API key are kept in memory and
 cleared when the app exits. Only HTTPS endpoints are accepted.
-Legacy endpoint and API Key values saved by earlier builds are deleted when the app starts.
+Legacy endpoint and API Key values saved by earlier builds (UserDefaults or Keychain) are deleted when the app starts.
 
-### API Request Format
+Request body the app sends:
+
 ```json
 {
   "text": "Text to be read",
@@ -149,162 +113,130 @@ Legacy endpoint and API Key values saved by earlier builds are deleted when the 
 }
 ```
 
-### Expected Response
-Binary audio data (audio/mpeg or audio/wav).
+The endpoint should return **binary audio** (`audio/mpeg` or `audio/wav`). See [`Docs/remote-clone-api-contract.md`](Docs/remote-clone-api-contract.md) for the full contract and [`Docs/provider-cost-notes.md`](Docs/provider-cost-notes.md) for provider cost notes.
 
-## Delivery
+## 🗺️ Status
 
-### TestFlight Distribution
-1. Archive in Xcode (`Product → Archive`)
-2. Upload to App Store Connect
-3. Add internal testers in TestFlight
-4. Install and test on iPhone
+Active personal project, built and iterated in public. Distribution is via TestFlight (`Product → Archive` → App Store Connect → internal testers).
 
-## Known Limitations
+**Known limitations:**
+- EPUB is extracted as plain body text — complex layout is not preserved.
+- URL extraction uses lightweight HTML-stripping rules; some complex sites need site-specific tweaks.
+- Remote cloning interfaces vary by vendor and require custom API integration.
 
-- EPUB parsing extracts plain text (complex formatting not preserved)
-- URL content extraction uses lightweight rules; complex sites may require specific adaptation
-- Remote cloning service interfaces vary by vendor and require custom API integration
+## 🤝 Connect & about
+
+Built by **Tony (Sheng)** — a Chinese-language teacher with 6,000+ students, building AI + Chinese-teaching tools in the open.
+
+If a reading app that speaks in *your* voice sounds useful, **⭐ star this repo and [follow @shengdabai](https://github.com/shengdabai)** to follow along as it grows.
+
+**More tools in the same family:**
+- [QuickTranslate](https://github.com/shengdabai/QuickTranslate) — fast translation
+- [LinguaLens](https://github.com/shengdabai/LinguaLens) — language-learning lens
+- [chinese-learning-app](https://github.com/shengdabai/chinese-learning-app) — Chinese learning
+
+## License
+
+Released under the [MIT License](LICENSE).
 
 ---
 
-# VoiceReaderApp (iOS)
+# 中文
 
-一个面向个人使用的多语言朗读应用（中文/英文/德文），支持导入 PDF/EPUB/Markdown/TXT，录制声音样本，优先走远程克隆音色，失败时自动回退本地离线语音。
+> 把任意 PDF、EPUB、Markdown 或网页文章变成语音——用你自己的声音朗读。一款 iOS 朗读应用：优先用克隆音色朗读，离线时自动回退到快速的本地语音。
 
-## 功能特性
+[![最近提交](https://img.shields.io/github/last-commit/shengdabai/VoiceReaderApp)](https://github.com/shengdabai/VoiceReaderApp/commits)
+[![Star 数](https://img.shields.io/github/stars/shengdabai/VoiceReaderApp?style=social)](https://github.com/shengdabai/VoiceReaderApp/stargazers)
+[![关注 @shengdabai](https://img.shields.io/github/followers/shengdabai?style=social)](https://github.com/shengdabai)
+![Swift 5.10](https://img.shields.io/badge/Swift-5.10-FA7343?logo=swift&logoColor=white)
+![平台 iOS 17+](https://img.shields.io/badge/iOS-17.0%2B-000000?logo=apple&logoColor=white)
 
-### 文件导入
-- **本地文件**：从设备存储或 iCloud 导入
-- **外部分享**：打开从其他应用分享的文件（包括微信）
-- **网页内容**：导入网址链接，提取并朗读文章内容
+## 为什么做它
 
-### 支持格式
-- PDF 文档
-- EPUB 电子书
-- Markdown 文件
-- 纯文本文件 (TXT)
+普通朗读应用用机器音念给你听。VoiceReaderApp 用 **你自己的声音**(或你通过远程 TTS 服务克隆的任意音色)来念,让听书、听论文、听长文章变得亲切而不机械。它面向需要中/英/德三语朗读的读者——想在走路、通勤、闭眼休息时「听」文档,又不想一离线就没声音。
 
-### 语言支持
-- 中文（简体）
-- 英文（美式）
-- 德文（德国）
+这是一款公开开发的个人 iOS 应用,核心理念只有一句:**任意导入,全部能听,用你喜欢的声音。**
 
-### 播放控制
-- **语速调节**：0.5x、0.75x、1.0x、1.25x、1.5x、2.0x、2.5x、3.0x
-- **后台播放**：应用在后台时继续朗读
-- **断点续读**：自动从上次位置恢复
-- **暂停/继续**：完整的播放控制
+## ✨ 功能特性
 
-### 声音系统
-- **本地录制**：录制个人声音样本
-- **远程克隆**：优先使用远程克隆的音色
-- **离线兜底**：远程服务不可用时自动使用本地 TTS
+- **📥 随处导入**——本地文件、iCloud、其他应用分享进来的文件(含微信),或粘贴网址提取并朗读文章。
+- **📄 四种格式**——PDF、EPUB、Markdown、纯文本(TXT),由可插拔的解析器工厂统一处理。
+- **🌍 三语支持**——简体中文(`zh-CN`)、美式英语(`en-US`)、德语(`de-DE`)。
+- **🎙️ 克隆音色 + 智能兜底**——优先使用你配置的远程克隆音色;远程不可用时自动回退到本地语音,播放从不中断。
+- **🎚️ 八档语速**——0.5×、0.75×、1.0×、1.25×、1.5×、2.0×、2.5×、3.0×。
+- **🔁 断点续读**——阅读位置自动保存与恢复。
+- **🎧 后台播放 + 锁屏控制**——应用退到后台仍继续朗读,支持锁屏「正在播放」的播放 / 暂停 / 停止。
+- **🗣️ 录制个人样本**——在设备本地录制声音样本,用于克隆流程。
 
-## 技术栈
+## 🧱 技术栈
 
-- **开发语言**：Swift 5.10
-- **UI 框架**：SwiftUI
-- **支持平台**：iOS 17.0+
-- **构建工具**：XcodeGen
-- **依赖库**：ZIPFoundation（文件处理）
-- **音频处理**：AVFoundation（语音合成）
+| 层 | 选型 |
+|----|------|
+| 语言 | Swift 5.10 |
+| UI | SwiftUI |
+| 平台 | iOS 17.0+ |
+| 语音 | AVFoundation(本地 `AVSpeechSynthesizer` + 远程音频用 `AVAudioPlayer`) |
+| 音频会话 | `MPRemoteCommandCenter` 锁屏控制,后台 `audio` 模式 |
+| 工程生成 | XcodeGen(`project.yml`)——不提交 `.xcodeproj` |
+| 依赖 | [ZIPFoundation](https://github.com/weichsel/ZIPFoundation)(EPUB 解包) |
 
-## 架构设计
+**一句话架构:** `TTSRouter` 在 `RemoteCloneProvider` 与 `LocalSpeechSynthProvider` 之间决策;`ParserFactory` 把每种格式转成干净文本;`PlaybackEngine` 通过单一播放状态机同时驱动合成器与音频播放器。
 
-### 项目结构
-```
-VoiceReaderApp/
-├── project.yml              # XcodeGen 工程配置
-├── App/
-│   ├── Sources/
-│   │   ├── App/             # 应用入口
-│   │   ├── Features/        # 功能模块
-│   │   │   ├── Library/     # 书库管理
-│   │   │   ├── Reader/      # 阅读界面
-│   │   │   └── Settings/    # 应用设置
-│   │   ├── Models/          # 数据模型
-│   │   ├── Services/        # 业务逻辑
-│   │   │   ├── Import/     # 文档导入
-│   │   │   ├── Parsing/    # 文本解析
-│   │   │   ├── TTS/        # 语音合成
-│   │   │   ├── Playback/   # 音频播放
-│   │   │   └── Persistence/ # 数据存储
-│   │   ├── UI/             # UI 组件
-│   │   └── Support/        # 应用环境
-│   ├── Resources/           # 资源文件和 Info.plist
-│   └── Tests/              # 单元测试
+## 🚀 构建运行
+
+**环境要求:** 装有完整 Xcode 15+ 的 macOS(不是 Command Line Tools)、iOS 17+ 真机,以及 [XcodeGen](https://github.com/yonaskolb/XcodeGen)。
+
+```bash
+# 1. 克隆
+git clone https://github.com/shengdabai/VoiceReaderApp.git
+cd VoiceReaderApp
+
+# 2. 安装 XcodeGen(如未安装)
+brew install xcodegen
+
+# 3. 由 project.yml 生成 Xcode 工程
+xcodegen generate
+
+# 4. 打开并运行
+open VoiceReaderApp.xcodeproj
 ```
 
-### 核心组件
+在 Xcode 中选择 **VoiceReaderApp** target,在 iOS 真机上运行(后台音频与麦克风在真机上表现最佳)。
 
-#### TTS 路由器
-智能路由语音请求：
-1. 优先尝试远程语音克隆（如果已配置）
-2. 远程不可用时回退到本地 TTS
-3. 确保持续的播放体验
-
-#### 解析器工厂
-处理多种文档格式：
-- PDF：提取文本，保持可读性
-- EPUB：转换为纯文本（简单格式）
-- Markdown：保留基本结构
-- TXT：直接文本处理
-
-#### 声音配置系统
-- 录制个人声音样本
-- 配置远程克隆服务
-- 根据可用性自动选择提供商
-
-## 安装与开发
-
-### 环境要求
-- Xcode 15+（完整 Xcode，不是 Command Line Tools）
-- XcodeGen
-
-### 设置步骤
-1. 安装 XcodeGen：
-   ```bash
-   brew install xcodegen
-   ```
-
-2. 生成工程：
-   ```bash
-   # 在仓库根目录执行
-   xcodegen generate
-   open VoiceReaderApp.xcodeproj
-   ```
-
-3. 构建运行：
-   - 在 Xcode 中选择 `VoiceReaderApp` target
-   - 在真机上运行
-
-### 离线核心测试（macOS）
+### 离线核心测试(macOS)
 
 ```bash
 bash scripts/test-core.sh
 ```
 
-该命令不下载依赖，运行解析与导入、阅读进度、语速、远程配置会话、EPUB 阅读顺序和模拟播放生命周期测试。
-测试工程和构建缓存在 `.omc/` 中。它不构建 iOS 应用，也不替代完整 Xcode 测试：
+该命令不下载依赖,运行解析与导入、阅读进度、语速、远程配置会话、EPUB 阅读顺序和模拟播放生命周期测试。
+测试工程和构建缓存在 `.omc/core-tests.nosync/` 中。它不构建 iOS 应用,也不替代完整 Xcode 测试:
 PDF/EPUB 完整导入、真实音频播放、录音和界面仍需分别验证。
 
-安装 XcodeGen 后，运行 `python3 scripts/test-project-config.py` 检查生成工程后
+安装 XcodeGen 后,运行 `python3 scripts/test-project-config.py` 检查生成工程后
 麦克风、后台音频、文档类型和传输安全配置是否保留。该检查只生成临时副本。
 
-## 远程克隆音色配置
+## 📖 使用
 
-在应用设置 → 远程克隆中配置：
+1. 从「文件」、iCloud 或其他应用的分享面板**导入**文档(PDF / EPUB / Markdown / TXT),或粘贴网址抓取文章。
+2. **选择语言与声音档案**(本地,或你已配置的远程克隆音色)。
+3. **按播放。** 可随时调速;锁屏后继续听。
+4. **下次打开**——自动从上次阅读位置续读。
 
-- **API 端点**：您的 TTS/克隆服务 HTTP 地址
-- **API 密钥**：服务访问密钥
+### 远程克隆音色(可选)
 
-远程克隆默认关闭。应用启动时处于本地演示模式，不会把阅读正文发送到远程服务。
-远程能力必须每次启动后显式启用；端点和 API Key 仅保存在内存中，退出应用即清除，
+在 **设置 → 远程克隆** 中配置:
+
+- **API 端点**——你的 TTS / 克隆服务 HTTPS 地址
+- **API 密钥**——服务访问密钥
+
+远程克隆默认关闭。应用启动时处于本地演示模式,不会把阅读正文发送到远程服务。
+远程能力必须每次启动后显式启用;端点和 API Key 仅保存在内存中,退出应用即清除,
 并且只接受 HTTPS 端点。
-旧版本曾保存的端点和 API Key 会在应用启动时删除。
+旧版本曾保存的端点和 API Key(UserDefaults 或钥匙串)会在应用启动时删除。
 
-### 请求体格式
+应用发送的请求体:
+
 ```json
 {
   "text": "需要朗读的文本",
@@ -314,19 +246,28 @@ PDF/EPUB 完整导入、真实音频播放、录音和界面仍需分别验证�
 }
 ```
 
-### 响应格式
-返回二进制音频数据（audio/mpeg 或 audio/wav）。
+端点应返回**二进制音频**(`audio/mpeg` 或 `audio/wav`)。完整契约见 [`Docs/remote-clone-api-contract.md`](Docs/remote-clone-api-contract.md),服务商成本说明见 [`Docs/provider-cost-notes.md`](Docs/provider-cost-notes.md)。
 
-## 发布交付
+## 🗺️ 状态
 
-### TestFlight 交付
-1. 在 Xcode 中归档（`Product → Archive`）
-2. 上传到 App Store Connect
-3. 在 TestFlight 中添加内部测试成员
-4. 在 iPhone 上安装并验收
+公开开发、持续迭代中的个人项目。交付方式为 TestFlight(`Product → Archive` → App Store Connect → 内部测试)。
 
-## 已知限制
+**已知限制:**
+- EPUB 仅提取正文文本,不保留复杂排版。
+- 网址提取使用轻量 HTML 清洗规则,部分复杂站点需专项适配。
+- 远程克隆接口因厂商而异,需按实际 API 对接。
 
-- EPUB 解析为正文文本（不保留复杂排版）
-- 网址正文提取使用轻量规则，复杂站点可能需要专项适配
-- 远程克隆服务接口因厂商差异需按实际 API 对接
+## 🤝 联系与关于
+
+作者 **Tony(盛)**——拥有 6000+ 学员的中文老师,在公开场合构建 AI + 中文教学工具。
+
+如果「用你自己的声音朗读的阅读器」对你有用,欢迎 **⭐ Star 本仓库,并[关注 @shengdabai](https://github.com/shengdabai)**,见证它持续成长。
+
+**同系列工具:**
+- [QuickTranslate](https://github.com/shengdabai/QuickTranslate) —— 快速翻译
+- [LinguaLens](https://github.com/shengdabai/LinguaLens) —— 语言学习镜头
+- [chinese-learning-app](https://github.com/shengdabai/chinese-learning-app) —— 中文学习
+
+## 许可
+
+基于 [MIT 许可证](LICENSE) 发布。

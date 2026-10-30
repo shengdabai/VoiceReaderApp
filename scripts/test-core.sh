@@ -22,6 +22,7 @@ sources = [
     'Models/BookFormat.swift',
     'Models/ImportedDocument.swift',
     'Services/Persistence/ReadingProgressStore.swift',
+    'Services/Persistence/KeychainStore.swift',
     'Services/Parsing/TextParser.swift',
     'Services/Parsing/EpubReadingOrder.swift',
     'Services/Parsing/TXTTextParser.swift',

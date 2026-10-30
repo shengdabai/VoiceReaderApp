@@ -15,6 +15,10 @@ struct SettingsView: View {
     @State private var currentSampleURL: URL?
     @State private var recordError: String?
 
+    private var endpointIsHTTPS: Bool {
+        URL(string: remoteEndpoint)?.scheme?.lowercased() == "https"
+    }
+
     var body: some View {
         Form {
             Section("远程克隆") {
@@ -31,7 +35,13 @@ struct SettingsView: View {
                 TextField("API Endpoint", text: $remoteEndpoint)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .keyboardType(.URL)
                     .disabled(!remoteEnabled)
+                if remoteEnabled && !remoteEndpoint.isEmpty && !endpointIsHTTPS {
+                    Text("⚠️ Endpoint 需为 HTTPS。非 HTTPS 地址无法启用远程朗读,iOS 安全策略(ATS)也会拒绝这类请求。")
+                        .font(.footnote)
+                        .foregroundStyle(.orange)
+                }
                 SecureField("API Key", text: $remoteAPIKey)
                     .disabled(!remoteEnabled)
                 Button(remoteEnabled ? "应用本次启动的远程配置" : "保持本地演示模式") {

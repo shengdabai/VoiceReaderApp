@@ -65,19 +65,23 @@ struct ReaderView: View {
                     Label("上一段", systemImage: "chevron.left")
                 }
 
-                Button {
-                    Task { await viewModel.playCurrentParagraph() }
-                } label: {
-                    Label("播放", systemImage: "play.fill")
+                if viewModel.isPaused {
+                    Button(action: viewModel.resume) {
+                        Label("继续", systemImage: "playpause.fill")
+                    }
+                } else {
+                    Button {
+                        Task { await viewModel.playCurrentParagraph() }
+                    } label: {
+                        Label("播放", systemImage: "play.fill")
+                    }
+                    .disabled(viewModel.isPlaying)
                 }
 
                 Button(action: viewModel.pause) {
                     Label("暂停", systemImage: "pause.fill")
                 }
-
-                Button(action: viewModel.resume) {
-                    Label("继续", systemImage: "playpause.fill")
-                }
+                .disabled(!viewModel.isPlaying)
 
                 Button(action: viewModel.nextParagraph) {
                     Label("下一段", systemImage: "chevron.right")
