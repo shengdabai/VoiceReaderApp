@@ -11,14 +11,23 @@ final class RemoteCloneSessionTests: XCTestCase {
         defaults.set("https://legacy.example/tts", forKey: "remote_clone_endpoint")
         defaults.set("legacy-test-key", forKey: "remote_clone_api_key")
 
-        _ = RemoteCloneSession(userDefaults: defaults)
+        _ = RemoteCloneSession(userDefaults: defaults, removeLegacyKeychainKey: {})
 
         XCTAssertNil(defaults.object(forKey: "remote_clone_endpoint"))
         XCTAssertNil(defaults.object(forKey: "remote_clone_api_key"))
     }
 
+    func testLegacyKeychainAPIKeyIsRemovedOnStartup() {
+        var removeCalls = 0
+
+        _ = RemoteCloneSession(removeLegacyKeychainKey: { removeCalls += 1 })
+
+        XCTAssertEqual(removeCalls, 1)
+        XCTAssertEqual(RemoteCloneSession.legacyKeychainAPIKeyAccount, "remote_clone_api_key")
+    }
+
     func testRemoteCloneStartsDisabledWithoutPersistedContentOrKey() async {
-        let session = RemoteCloneSession()
+        let session = RemoteCloneSession(removeLegacyKeychainKey: {})
 
         let configuration = await session.current()
 
@@ -28,7 +37,7 @@ final class RemoteCloneSessionTests: XCTestCase {
     }
 
     func testRemoteCloneRequiresHTTPSAndCanBeDisabled() async throws {
-        let session = RemoteCloneSession()
+        let session = RemoteCloneSession(removeLegacyKeychainKey: {})
 
         do {
             try await session.configure(endpointText: "http://example.com/tts", apiKey: "test-key")

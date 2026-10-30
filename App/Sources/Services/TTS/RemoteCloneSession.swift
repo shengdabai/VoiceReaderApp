@@ -30,12 +30,23 @@ actor RemoteCloneSession {
         "remote_clone_api_key",
     ]
 
+    /// Keychain account that an interim build used to persist the API key.
+    static let legacyKeychainAPIKeyAccount = "remote_clone_api_key"
+
     private var configuration: RemoteCloneConfiguration = .disabled
 
-    init(userDefaults: UserDefaults = .standard) {
+    /// - Parameter removeLegacyKeychainKey: deletes the API key that an
+    ///   interim build persisted in the Keychain. Injectable for tests.
+    init(
+        userDefaults: UserDefaults = .standard,
+        removeLegacyKeychainKey: () -> Void = {
+            KeychainStore().delete(RemoteCloneSession.legacyKeychainAPIKeyAccount)
+        }
+    ) {
         for key in Self.legacyPersistedKeys {
             userDefaults.removeObject(forKey: key)
         }
+        removeLegacyKeychainKey()
     }
 
     func current() -> RemoteCloneConfiguration {
