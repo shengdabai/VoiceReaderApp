@@ -13,7 +13,11 @@ struct EpubTextParser: TextParser {
                 let path = entry.path.lowercased()
                 return path.hasSuffix(".xhtml") || path.hasSuffix(".html") || path.hasSuffix(".htm")
             }
-            .sorted { $0.path < $1.path }
+            // Numeric-aware ordering so chapter files like "2.xhtml" sort
+            // before "10.xhtml" instead of using pure lexicographic order.
+            // (A full content.opf spine parse would be more correct, but this
+            // matches the common zero/number-prefixed chapter naming scheme.)
+            .sorted { $0.path.localizedStandardCompare($1.path) == .orderedAscending }
 
         for entry in entries {
             var data = Data()
