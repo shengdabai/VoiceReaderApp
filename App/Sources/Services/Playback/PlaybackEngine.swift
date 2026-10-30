@@ -19,8 +19,8 @@ final class PlaybackEngine: NSObject, ObservableObject {
     private var remoteAudioFileURL: URL?
     private let ttsRouter: TTSRouter
 
-    override init() {
-        self.ttsRouter = TTSRouter()
+    init(remoteCloneSession: RemoteCloneSession) {
+        self.ttsRouter = TTSRouter(remoteProvider: RemoteCloneProvider(remoteCloneSession: remoteCloneSession))
         super.init()
         speechSynthesizer.delegate = self
         configureRemoteCommands()
