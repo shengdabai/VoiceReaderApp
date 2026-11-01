@@ -8,6 +8,7 @@ final class AppEnvironment: ObservableObject {
     let bookStore: BookStore
     let progressStore: ReadingProgressStore
     let playbackEngine: PlaybackEngine
+    let remoteCloneSession: RemoteCloneSession
     let voiceProfileStore: VoiceProfileStore
     let voiceRecorder: VoiceRecorderService
 
@@ -18,7 +19,9 @@ final class AppEnvironment: ObservableObject {
         self.parserFactory = ParserFactory()
         self.bookStore = BookStore()
         self.progressStore = ReadingProgressStore()
-        self.playbackEngine = PlaybackEngine()
+        let remoteCloneSession = RemoteCloneSession()
+        self.remoteCloneSession = remoteCloneSession
+        self.playbackEngine = PlaybackEngine(remoteCloneSession: remoteCloneSession)
         self.voiceProfileStore = VoiceProfileStore()
         self.voiceRecorder = VoiceRecorderService()
 

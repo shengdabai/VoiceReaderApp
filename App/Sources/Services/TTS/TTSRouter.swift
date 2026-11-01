@@ -6,7 +6,7 @@ struct TTSRouter {
     private let remoteProvider: RemoteCloneProvider
 
     init(localProvider: LocalSpeechSynthProvider = LocalSpeechSynthProvider(),
-         remoteProvider: RemoteCloneProvider = RemoteCloneProvider()) {
+         remoteProvider: RemoteCloneProvider) {
         self.localProvider = localProvider
         self.remoteProvider = remoteProvider
     }
