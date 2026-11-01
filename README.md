@@ -39,7 +39,24 @@ This repository turns content work into a repeatable workflow: inputs, processin
 
 ## Quick Start
 
-No universal setup command is declared yet. Start by inspecting the repository map above and the project-specific scripts or docs committed with the code.
+Generate and open the Xcode project from the repository root: `xcodegen generate && open VoiceReaderApp.xcodeproj`.
+
+### Offline core tests (macOS)
+
+```bash
+bash scripts/test-core.sh
+```
+
+This runs parser and import regression tests, reading-progress storage tests,
+speed-preset tests, remote-clone session checks, EPUB reading-order checks, and mocked playback
+lifecycle tests without downloading packages. Generated
+test files and build caches stay in `.omc/core-tests.nosync/`. It does not build the iOS app or run
+the complete Xcode suite: PDF/ZIP-backed EPUB import, real audio playback,
+recording, and UI checks still require separate verification.
+
+Run `python3 scripts/test-project-config.py` with XcodeGen installed to check
+that project generation preserves the microphone, background audio, document
+types, and transport-security settings. This generates only temporary copies.
 
 ## Operating Notes
 
@@ -187,6 +204,19 @@ open VoiceReaderApp.xcodeproj
 ```
 
 在 Xcode 中选择 **VoiceReaderApp** target,在 iOS 真机上运行(后台音频与麦克风在真机上表现最佳)。
+
+### 离线核心测试(macOS)
+
+```bash
+bash scripts/test-core.sh
+```
+
+该命令不下载依赖,运行解析与导入、阅读进度、语速、远程配置会话、EPUB 阅读顺序和模拟播放生命周期测试。
+测试工程和构建缓存在 `.omc/core-tests.nosync/` 中。它不构建 iOS 应用,也不替代完整 Xcode 测试:
+PDF/EPUB 完整导入、真实音频播放、录音和界面仍需分别验证。
+
+安装 XcodeGen 后,运行 `python3 scripts/test-project-config.py` 检查生成工程后
+麦克风、后台音频、文档类型和传输安全配置是否保留。该检查只生成临时副本。
 
 ## 📖 使用
 

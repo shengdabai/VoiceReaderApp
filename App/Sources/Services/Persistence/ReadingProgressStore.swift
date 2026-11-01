@@ -19,7 +19,8 @@ final class ReadingProgressStore {
     func loadPosition(for bookID: UUID) -> ReadingPosition {
         let key = keyForBook(bookID)
         guard let data = defaults.data(forKey: key),
-              let position = try? decoder.decode(ReadingPosition.self, from: data) else {
+              let position = try? decoder.decode(ReadingPosition.self, from: data),
+              position.paragraphIndex >= 0, position.offsetInParagraph >= 0 else {
             return .zero
         }
 
