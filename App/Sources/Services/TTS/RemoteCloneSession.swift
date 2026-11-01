@@ -22,35 +22,56 @@ enum RemoteCloneConfigurationError: LocalizedError {
     }
 }
 
-/// Volatile, opt-in configuration for the current app launch only.
-/// Reading content and credentials are intentionally never written to UserDefaults.
+/// Where the remote API key lives between launches. Injectable for tests.
+struct RemoteCloneKeyStore {
+    /// Keychain account holding the API key (device-only, not synced).
+    static let keychainAccount = "remote_clone_api_key"
+
+    let load: () -> String?
+    /// Stores the key, or deletes it when nil or empty.
+    let save: (String?) -> Void
+
+    static let keychain = RemoteCloneKeyStore(
+        load: { KeychainStore().string(for: keychainAccount) },
+        save: { KeychainStore().set($0, for: keychainAccount) }
+    )
+}
+
+/// Opt-in remote configuration. Remote reading is enabled for the current
+/// launch only and the endpoint is kept in memory; the API key is kept in the
+/// Keychain so it does not have to be re-entered after every launch.
+/// Reading content and credentials are never written to UserDefaults.
 actor RemoteCloneSession {
     private static let legacyPersistedKeys = [
         "remote_clone_endpoint",
         "remote_clone_api_key",
     ]
 
-    /// Keychain account that an interim build used to persist the API key.
-    static let legacyKeychainAPIKeyAccount = "remote_clone_api_key"
-
+    private let keyStore: RemoteCloneKeyStore
     private var configuration: RemoteCloneConfiguration = .disabled
 
-    /// - Parameter removeLegacyKeychainKey: deletes the API key that an
-    ///   interim build persisted in the Keychain. Injectable for tests.
-    init(
-        userDefaults: UserDefaults = .standard,
-        removeLegacyKeychainKey: () -> Void = {
-            KeychainStore().delete(RemoteCloneSession.legacyKeychainAPIKeyAccount)
-        }
-    ) {
+    /// Deletes the plaintext endpoint and API key that earlier builds wrote to
+    /// UserDefaults. The Keychain entry is kept.
+    init(userDefaults: UserDefaults = .standard, keyStore: RemoteCloneKeyStore = .keychain) {
         for key in Self.legacyPersistedKeys {
             userDefaults.removeObject(forKey: key)
         }
-        removeLegacyKeychainKey()
+        self.keyStore = keyStore
     }
 
     func current() -> RemoteCloneConfiguration {
         configuration
+    }
+
+    /// The API key saved in the Keychain by an earlier `configure`, if any.
+    func storedAPIKey() -> String? {
+        keyStore.load()
+    }
+
+    /// Deletes the saved API key. Remote reading that is already enabled for
+    /// this launch keeps working until it is disabled.
+    func forgetStoredAPIKey() {
+        keyStore.save(nil)
     }
 
     func configure(endpointText: String, apiKey: String) throws {
@@ -71,6 +92,7 @@ actor RemoteCloneSession {
             endpoint: endpoint,
             apiKey: normalizedKey
         )
+        keyStore.save(normalizedKey)
     }
 
     func disable() {

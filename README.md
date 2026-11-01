@@ -81,9 +81,11 @@ Configure in **Settings → Remote Cloning**:
 
 Remote cloning is disabled by default. The app starts in local demo mode and
 does not send reading content to a remote service. Enabling remote cloning is
-an explicit, per-launch action; the endpoint and API key are kept in memory and
-cleared when the app exits. Only HTTPS endpoints are accepted.
-Legacy endpoint and API Key values saved by earlier builds (UserDefaults or Keychain) are deleted when the app starts.
+an explicit, per-launch action; the endpoint is kept in memory and cleared when
+the app exits. The API key is saved in the device Keychain (device-only, not
+synced) so it does not need to be re-entered, and **Delete saved API Key** in
+Settings removes it. Only HTTPS endpoints are accepted.
+Plaintext endpoint and API Key values that earlier builds saved in UserDefaults are deleted when the app starts.
 
 Request body the app sends:
 
@@ -201,9 +203,10 @@ open VoiceReaderApp.xcodeproj
 - **API 密钥**——服务访问密钥
 
 远程克隆默认关闭。应用启动时处于本地演示模式,不会把阅读正文发送到远程服务。
-远程能力必须每次启动后显式启用;端点和 API Key 仅保存在内存中,退出应用即清除,
-并且只接受 HTTPS 端点。
-旧版本曾保存的端点和 API Key(UserDefaults 或钥匙串)会在应用启动时删除。
+远程能力必须每次启动后显式启用;端点仅保存在内存中,退出应用即清除;
+API Key 保存在本机钥匙串(仅本设备,不同步),不用每次重新输入,可在设置里点「删除已保存的 API Key」删除。
+只接受 HTTPS 端点。
+旧版本以明文存在 UserDefaults 里的端点和 API Key 会在应用启动时删除。
 
 应用发送的请求体:
 

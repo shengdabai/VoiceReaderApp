@@ -27,7 +27,7 @@ struct SettingsView: View {
                         guard !enabled else { return }
                         Task {
                             await environment.remoteCloneSession.disable()
-                            remoteAPIKey = ""
+                            remoteAPIKey = await environment.remoteCloneSession.storedAPIKey() ?? ""
                             providerType = .local
                             remoteConfigurationStatus = "本地演示模式：阅读内容不会发送到远程服务。"
                         }
@@ -53,7 +53,7 @@ struct SettingsView: View {
                                     apiKey: remoteAPIKey
                                 )
                                 providerType = .remoteClone
-                                remoteConfigurationStatus = "远程朗读已为本次启动启用；退出应用后配置会清除。"
+                                remoteConfigurationStatus = "远程朗读已为本次启动启用；退出应用后需要重新启用。API Key 已保存在本机钥匙串。"
                             } catch {
                                 await environment.remoteCloneSession.disable()
                                 providerType = .local
@@ -61,10 +61,17 @@ struct SettingsView: View {
                             }
                         } else {
                             await environment.remoteCloneSession.disable()
-                            remoteAPIKey = ""
+                            remoteAPIKey = await environment.remoteCloneSession.storedAPIKey() ?? ""
                             providerType = .local
                             remoteConfigurationStatus = "本地演示模式：阅读内容不会发送到远程服务。"
                         }
+                    }
+                }
+                Button("删除已保存的 API Key", role: .destructive) {
+                    Task {
+                        await environment.remoteCloneSession.forgetStoredAPIKey()
+                        remoteAPIKey = ""
+                        remoteConfigurationStatus = "已从本机钥匙串删除 API Key。"
                     }
                 }
                 Text(remoteConfigurationStatus)
@@ -151,7 +158,11 @@ struct SettingsView: View {
             let current = await environment.remoteCloneSession.current()
             remoteEnabled = current.enabled
             remoteEndpoint = current.endpoint?.absoluteString ?? ""
-            remoteAPIKey = current.apiKey ?? ""
+            if let apiKey = current.apiKey {
+                remoteAPIKey = apiKey
+            } else {
+                remoteAPIKey = await environment.remoteCloneSession.storedAPIKey() ?? ""
+            }
             providerType = current.enabled ? .remoteClone : .local
         }
         .alert("录制失败", isPresented: Binding(
