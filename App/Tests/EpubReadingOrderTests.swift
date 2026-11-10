@@ -1,4 +1,7 @@
 import XCTest
+#if canImport(ZIPFoundation)
+import ZIPFoundation
+#endif
 @testable import VoiceReaderApp
 
 final class EpubReadingOrderTests: XCTestCase {
@@ -129,5 +132,61 @@ final class EpubReadingOrderTests: XCTestCase {
         media-type="application/xhtml+xml"/></manifest><spine><itemref idref="a"/></spine></package>
         """
         XCTAssertThrowsError(try EpubReadingOrder.chapterPaths(container: container) { _ in Data(package.utf8) })
+    }
+
+    func testEntryBudgetRejectsOversizedChunkBeforeAppending() throws {
+        var budget = EpubReadBudget(maximumEntryBytes: 4, maximumTotalBytes: 10)
+        var data = Data()
+        try budget.append(Data("1234".utf8), to: &data)
+        XCTAssertThrowsError(try budget.append(Data("5".utf8), to: &data))
+        XCTAssertEqual(data, Data("1234".utf8))
+    }
+
+    #if canImport(ZIPFoundation)
+    func testOversizedCompressedChapterIsRejected() throws {
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".epub")
+        defer { try? FileManager.default.removeItem(at: file) }
+        let archive = try Archive(url: file, accessMode: .create, pathEncoding: nil)
+        try archive.addEntry(with: "chapter.xhtml", type: .file,
+            uncompressedSize: Int64(EpubReadBudget().maximumEntryBytes + 1),
+            compressionMethod: .deflate) { _, size in Data(repeating: 32, count: size) }
+        XCTAssertThrowsError(try EpubTextParser().parse(from: file)) { error in
+            guard case TextParsingError.resourceLimitExceeded = error else {
+                return XCTFail("Oversized EPUB member must be rejected before extraction")
+            }
+        }
+    }
+    #endif
+
+    func testTotalBudgetSpansMultipleEntries() throws {
+        var budget = EpubReadBudget(maximumEntryBytes: 4, maximumTotalBytes: 6)
+        var first = Data(), second = Data()
+        try budget.append(Data("1234".utf8), to: &first)
+        try budget.append(Data("56".utf8), to: &second)
+        XCTAssertThrowsError(try budget.append(Data("7".utf8), to: &second))
+        XCTAssertEqual(second, Data("56".utf8))
+    }
+
+    func testResourceLimitDoesNotSilentlySkipChapterOrUseFallback() {
+        var visited: [String] = []
+        XCTAssertThrowsError(try EpubReadingOrder.paragraphs(container: nil,
+            fallbackPaths: ["a.xhtml", "b.xhtml"]) { path in
+                visited.append(path)
+                throw TextParsingError.resourceLimitExceeded
+            }) { error in
+                guard case TextParsingError.resourceLimitExceeded = error else {
+                    return XCTFail("Resource limit must propagate")
+                }
+            }
+        XCTAssertEqual(visited, ["a.xhtml"])
+        XCTAssertThrowsError(try EpubReadingOrder.paragraphs(container: container,
+            fallbackPaths: ["fallback.xhtml"]) { path in
+                XCTAssertNotEqual(path, "fallback.xhtml")
+                throw TextParsingError.resourceLimitExceeded
+            }) { error in
+                guard case TextParsingError.resourceLimitExceeded = error else {
+                    return XCTFail("Metadata resource limit must propagate")
+                }
+            }
     }
 }

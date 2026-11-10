@@ -5,22 +5,31 @@ enum EpubReadingOrder {
     /// Archive access is injected so chapter extraction can be checked offline.
     static func paragraphs(container: Data?, fallbackPaths: [String],
                            read: (String) throws -> Data) throws -> [String] {
-        func extract(_ paths: [String]) -> [String] {
+        func extract(_ paths: [String]) throws -> [String] {
             var chapterTexts: [String] = []
             for path in paths {
-                guard let data = try? read(path),
-                      let html = String(data: data, encoding: .utf8) else { continue }
-                chapterTexts.append(URLArticleExtractor.stripHTML(from: html))
+                do {
+                    let data = try read(path)
+                    guard let html = String(data: data, encoding: .utf8) else { continue }
+                    chapterTexts.append(URLArticleExtractor.stripHTML(from: html))
+                } catch TextParsingError.resourceLimitExceeded {
+                    throw TextParsingError.resourceLimitExceeded
+                } catch { continue }
             }
             return normalizeParagraphs(from: chapterTexts.joined(separator: "\n"))
         }
         // Damaged or missing package metadata keeps the legacy filename order, and so does a spine
         // whose chapters cannot be read at all (stale manifest, href case that differs from the ZIP).
         var paragraphs: [String] = []
-        if let container, let spine = try? chapterPaths(container: container, read: read) {
-            paragraphs = extract(spine)
+        if let container {
+            do {
+                let spine = try chapterPaths(container: container, read: read)
+                paragraphs = try extract(spine)
+            } catch TextParsingError.resourceLimitExceeded {
+                throw TextParsingError.resourceLimitExceeded
+            } catch {} // Damaged metadata still falls back to filename order.
         }
-        if paragraphs.isEmpty { paragraphs = extract(fallbackPaths.sorted()) }
+        if paragraphs.isEmpty { paragraphs = try extract(fallbackPaths.sorted()) }
         guard !paragraphs.isEmpty else { throw TextParsingError.noExtractedText }
         return paragraphs
     }
@@ -68,6 +77,26 @@ enum EpubReadingOrder {
         parser.delegate = collector
         guard parser.parse() else { throw TextParsingError.noExtractedText }
         return collector.elements
+    }
+}
+
+/// Bounds both a single ZIP member and all decompressed bytes in one import.
+/// Checking emitted chunks also covers entries with dishonest size metadata.
+struct EpubReadBudget {
+    let maximumEntryBytes: Int
+    private var remainingBytes: Int
+
+    init(maximumEntryBytes: Int = 16 * 1024 * 1024, maximumTotalBytes: Int = 64 * 1024 * 1024) {
+        self.maximumEntryBytes = maximumEntryBytes
+        self.remainingBytes = maximumTotalBytes
+    }
+
+    mutating func append(_ chunk: Data, to entry: inout Data) throws {
+        guard chunk.count <= maximumEntryBytes - entry.count, chunk.count <= remainingBytes else {
+            throw TextParsingError.resourceLimitExceeded
+        }
+        remainingBytes -= chunk.count
+        entry.append(chunk)
     }
 }
 

@@ -11,6 +11,7 @@ struct RemoteCloneConfiguration: Equatable {
 enum RemoteCloneConfigurationError: LocalizedError {
     case secureEndpointRequired
     case apiKeyRequired
+    case invalidAPIKey
 
     var errorDescription: String? {
         switch self {
@@ -18,6 +19,8 @@ enum RemoteCloneConfigurationError: LocalizedError {
             return "远程服务必须使用有效的 HTTPS 地址。"
         case .apiKeyRequired:
             return "本次启动启用远程服务时必须输入 API Key。"
+        case .invalidAPIKey:
+            return "API Key 不能包含控制字符。"
         }
     }
 }
@@ -78,13 +81,18 @@ actor RemoteCloneSession {
         let normalizedEndpoint = endpointText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let endpoint = URL(string: normalizedEndpoint),
               endpoint.scheme?.lowercased() == "https",
-              endpoint.host != nil else {
+              let host = endpoint.host, !host.isEmpty,
+              endpoint.user == nil, endpoint.password == nil,
+              endpoint.fragment == nil else {
             throw RemoteCloneConfigurationError.secureEndpointRequired
         }
 
         let normalizedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !normalizedKey.isEmpty else {
             throw RemoteCloneConfigurationError.apiKeyRequired
+        }
+        guard !normalizedKey.unicodeScalars.contains(where: CharacterSet.controlCharacters.contains) else {
+            throw RemoteCloneConfigurationError.invalidAPIKey
         }
 
         configuration = RemoteCloneConfiguration(
