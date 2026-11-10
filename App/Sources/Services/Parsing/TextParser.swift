@@ -6,11 +6,14 @@ protocol TextParser {
 
 enum TextParsingError: LocalizedError {
     case noExtractedText
+    case resourceLimitExceeded
 
     var errorDescription: String? {
         switch self {
         case .noExtractedText:
             return "无法从文件中提取可朗读文本。"
+        case .resourceLimitExceeded:
+            return "EPUB 解压内容过大，请导入较小的文件。"
         }
     }
 }

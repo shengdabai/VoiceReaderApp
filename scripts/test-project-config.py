@@ -10,6 +10,16 @@ import unittest
 
 
 class ProjectConfigurationTests(unittest.TestCase):
+    def test_checked_in_project_includes_swift_sources(self):
+        root = pathlib.Path(__file__).resolve().parents[1]
+        project = (root / "VoiceReaderApp.xcodeproj/project.pbxproj").read_text()
+        for folder in ("App/Sources", "App/Tests"):
+            for source in (root / folder).rglob("*.swift"):
+                with self.subTest(source=source.name):
+                    self.assertGreaterEqual(project.count(f"/* {source.name} in Sources */"), 2)
+        for version in re.findall(r"SWIFT_VERSION = ([^;]+);", project):
+            self.assertIn(version.strip('"'), ("5", "5.0", "6", "6.0"))
+
     def test_generation_preserves_app_configuration(self):
         root = pathlib.Path(__file__).resolve().parents[1]
         expected = plistlib.loads((root / "App/Resources/Info.plist").read_bytes())

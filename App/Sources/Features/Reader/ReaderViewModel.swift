@@ -35,7 +35,7 @@ final class ReaderViewModel: ObservableObject {
         // the right buttons for idle / playing / paused.
         playbackEngine.$state
             .receive(on: DispatchQueue.main)
-            .assign(to: \.playbackState, on: self)
+            .sink { [weak self] state in self?.playbackState = state }
             .store(in: &cancellables)
     }
 
